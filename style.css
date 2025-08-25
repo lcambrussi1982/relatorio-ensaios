@@ -1,0 +1,368 @@
+:root {
+    /* Paleta clara 60-30-10 */
+    --bg: #F6F8FC;
+    /* 60% – fundo do app */
+    --panel: #EEF2F9;
+    /* 30% – painel/lateral */
+    --card: #FFFFFF;
+    /* 30% – cartões/fields/tabelas */
+    --ink: #0F172A;
+    /* texto principal (quase preto) */
+    --muted: #5B667A;
+    /* textos secundários */
+    --border: #D6DEE9;
+    /* linhas/bordas suaves */
+    --brand: #2563EB;
+    /* 10% – acento principal (azul) */
+    --brand-weak: #E8F0FF;
+    /* fundo leve p/ realces */
+    --accent: #16A34A;
+    /* verde sutil para “ok” quando precisar */
+    --danger: #DC2626;
+    /* vermelho p/ ações destrutivas */
+    --shadow: 0 6px 20px rgba(17, 24, 39, .08);
+}
+
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    height: 100%
+}
+
+body {
+    margin: 0;
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+    color: var(--ink);
+    background: var(--bg);
+}
+
+/* Topbar */
+.topbar {
+    padding: 16px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.topbar h1 {
+    margin: 0;
+    font-size: 20px
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap
+}
+
+/* Botões */
+button,
+.import {
+    border: 1px solid var(--brand);
+    background: #fff;
+    color: var(--brand);
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: .15s ease;
+}
+
+button:hover,
+.import:hover {
+    background: var(--brand-weak)
+}
+
+button:active {
+    transform: translateY(1px)
+}
+
+.import {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px
+}
+
+.import input {
+    display: none
+}
+
+/* Botão secundário de utilidade */
+.secundario {
+    border-color: var(--border);
+    color: var(--ink);
+}
+
+.secundario:hover {
+    background: #F2F6FF;
+    border-color: #C9D7F2
+}
+
+/* Layout */
+.layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: calc(100vh - 66px);
+}
+
+/* Lista lateral */
+.lista-relatorios {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 14px;
+}
+
+.aside-head {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px
+}
+
+.aside-head h2 {
+    margin: 0;
+    font-size: 16px
+}
+
+#filtroLista {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    outline: none;
+}
+
+#filtroLista:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+    border-color: #B8CCFF
+}
+
+#listaRelatorios {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+#listaRelatorios li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: var(--shadow);
+}
+
+#listaRelatorios li:hover {
+    border-color: #BFD0F8
+}
+
+#listaRelatorios .meta {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 2px
+}
+
+#listaRelatorios .row-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px
+}
+
+.conteudo {
+    padding: 18px
+}
+
+/* Cards/Fieldsets */
+form fieldset {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px 14px 10px;
+    margin: 0 0 14px;
+    box-shadow: var(--shadow);
+}
+
+legend {
+    padding: 0 8px;
+    color: var(--brand);
+    font-weight: 600
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+input,
+textarea,
+select {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #8A94A7
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #B8CCFF;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+}
+
+.hint {
+    color: var(--muted);
+    margin-top: 0;
+    margin-bottom: 10px
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px
+}
+
+.inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px
+}
+
+.metodos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px
+}
+
+.metodos label {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff
+}
+
+.metodos input[type="checkbox"] {
+    width: 18px;
+    height: 18px
+}
+
+/* Tabela */
+.tabela {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow)
+}
+
+.tabela thead th {
+    text-align: left;
+    padding: 12px;
+    background: var(--brand-weak);
+    border-bottom: 1px solid var(--border);
+    color: #1E293B
+}
+
+.tabela td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top
+}
+
+.tabela tr:last-child td {
+    border-bottom: none
+}
+
+.tabela button {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: #374151
+}
+
+.tabela button:hover {
+    background: #F5F8FF
+}
+
+.tabela .del {
+    border-color: #F2C7C7;
+    color: #8B1C1C
+}
+
+.tabela .del:hover {
+    border-color: var(--danger);
+    background: #FFF1F2;
+    color: var(--danger)
+}
+
+/* Rodapé */
+.rodape {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: #fff;
+    text-align: center;
+    color: var(--muted)
+}
+
+/* Impressão clean */
+@media print {
+
+    .topbar,
+    .lista-relatorios,
+    .rodape,
+    .secundario,
+    #btnSalvar,
+    #btnExportar,
+    .import,
+    #btnImprimir {
+        display: none !important
+    }
+
+    body {
+        background: #fff;
+        color: #000
+    }
+
+    fieldset {
+        border-color: #aaa;
+        background: #fff;
+        box-shadow: none
+    }
+
+    input,
+    textarea,
+    select {
+        border-color: #bbb;
+        background: #fff;
+        color: #000
+    }
+
+    legend {
+        color: #000
+    }
+}
