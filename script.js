@@ -1,14 +1,15 @@
 /* =========================
-   VARIÁVEIS DE TEMA (JS)
+   PALETA (alinhada ao CSS)
    ========================= */
 const THEME = {
-  brand: "#2563EB",
-  brandWeak: "#E8F0FF",
-  ink: "#0F172A",
-  muted: "#5B667A",
-  border: "#D6DEE9",
-  success: "#16A34A",
-  danger: "#DC2626"
+  brand: "#0EA5A4",
+  brandWeak: "#DFF7F6",
+  ink: "#0B1220",
+  muted: "#5F6B84",
+  border: "#E7ECF3",
+  success: "#22C55E",
+  danger: "#E11D48",
+  accent: "#F97316"
 };
 
 /* ======= Modelo de dados ======= */
@@ -22,12 +23,16 @@ const ENSAIOS_DEFAULT = [
   { ensaio: "Desempenho da junta soldável", norma: "ABNT NBR 7371" },
 ];
 
-const STORAGE_KEY = "relatorios-ensaio-v1";
+const STORAGE_KEY = "relatorios-ensaio-v2"; // bump: v2 para novas estruturas
 
 /* ======= Utilidades ======= */
 const $ = (sel, ctx=document) => ctx.querySelector(sel);
 const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
+const el = (tag, cls, html) => { const e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; }
+const announce = (msg) => { const live=$("#ariaLive"); if(!live) return; live.textContent=""; setTimeout(()=> live.textContent=msg, 10); };
+const sanitizeFileName = (s) => (s||"ensaio").replace(/[^\p{L}\p{N}\-_.]+/gu,"-").replace(/-+/g,"-").replace(/(^-|-$)/g,"");
+const debounce = (fn, ms=600) => { let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; };
 
 /* ======= Estado ======= */
 let relatorios = loadAll();
@@ -41,21 +46,24 @@ document.addEventListener("DOMContentLoaded", () => {
   preencherForm(atual);
   desenharLista();
 
-  // Seções existentes
-  $("#btnAddAmostra")?.addEventListener("click", addAmostra);
-  $("#btnAddResultado")?.addEventListener("click", addResultado);
-
-  // NOVO: Imagens e Tabelas extras
-  $("#btnAddImagem")?.addEventListener("click", addImagem);
-  $("#btnAddTabela")?.addEventListener("click", addTabela);
+  // Seções
+  $("#btnAddAmostra")?.addEventListener("click", () => { addAmostra(); announce("Amostra adicionada."); });
+  $("#btnAddResultado")?.addEventListener("click", () => { addResultado(); announce("Linha de resultado adicionada."); });
+  $("#btnAddImagem")?.addEventListener("click", () => { addImagem(); announce("Imagem adicionada."); });
+  $("#btnAddTabela")?.addEventListener("click", () => { addTabela(); announce("Tabela adicional adicionada."); });
 
   // Ações principais
-  $("#btnNovo").addEventListener("click", () => { atual = novoRelatorio(); preencherForm(atual); });
+  $("#btnNovo").addEventListener("click", () => { atual = novoRelatorio(); preencherForm(atual); announce("Novo relatório iniciado."); });
   $("#btnSalvar").addEventListener("click", salvarAtual);
   $("#btnExportar").addEventListener("click", exportarJSON);
   $("#inputImportar").addEventListener("change", importarJSON);
   $("#btnImprimir").addEventListener("click", () => window.print());
   $("#filtroLista").addEventListener("input", desenharLista);
+  $("#btnToggleAside")?.addEventListener("click", toggleAside);
+
+  // Autosave (debounced) ao digitar
+  $("#formRelatorio").addEventListener("input", debounce(()=>{ salvarAtualSilencioso(); }, 800));
+  $("#formRelatorio").addEventListener("change", debounce(()=>{ salvarAtualSilencioso(); }, 300));
 
   // PDFs
   $("#btnPDF").addEventListener("click", () => gerarPDF());
@@ -80,26 +88,37 @@ function novoRelatorio(){
     conclusao: { status: "Conforme", observacoes: "" },
     anexos: { certificados: [], planilhas: [], fotos: [] },
 
-    // NOVOS CAMPOS:
-    imagens: [],          // array de strings (URL/base64)
-    tabelasExtras: [],    // array de tabelas => [ [c1,c2], ... ]
+    // Imagens: array de objetos {src, alt, legenda}
+    imagens: [],
+    // Tabelas extras: array de {titulo, linhas: [[c1,c2], ...]}
+    tabelasExtras: [],
 
     updatedAt: Date.now()
   };
 }
-function novaAmostra(){
-  return { descricao:"", tipo:"", dimensao:"", cor:"", processo:"", marca:"", lote:"", quantidade:"" };
-}
-function loadAll(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch{ return []; }
-}
+function novaAmostra(){ return { descricao:"", tipo:"", dimensao:"", cor:"", processo:"", marca:"", lote:"", quantidade:"" }; }
+function loadAll(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] } }
 function persistAll(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(relatorios)); }
 function salvarAtual(){
-  if(!$("#formRelatorio").reportValidity()) return;
+  if(!$("#formRelatorio").reportValidity()) { announce("Formulário inválido, verifique os campos obrigatórios."); return; }
   const data = coletarForm(); data.updatedAt = Date.now();
   const ix = relatorios.findIndex(r => r.id === data.id);
   if(ix >= 0) relatorios[ix] = data; else relatorios.unshift(data);
-  persistAll(); desenharLista(); alert("Relatório salvo!");
+  persistAll(); desenharLista(); announce("Relatório salvo.");
+}
+function salvarAtualSilencioso(){
+  if(!$("#formRelatorio")) return;
+  const data = coletarForm(); data.updatedAt = Date.now();
+  const ix = relatorios.findIndex(r => r.id === data.id);
+  if(ix >= 0) relatorios[ix] = data; else relatorios.unshift(data);
+  persistAll(); // sem alert
+}
+
+/* ======= Mostrar/Ocultar lateral (mobile) ======= */
+function toggleAside(){
+  document.body.classList.toggle("aside-collapsed");
+  const state = document.body.classList.contains("aside-collapsed") ? "oculta" : "visível";
+  announce(`Lista lateral ${state}.`);
 }
 
 /* ======= Form <-> Estado ======= */
@@ -125,6 +144,7 @@ function preencherForm(r){
   (r.amostras||[]).forEach((a,i)=>$("#amostras").appendChild(amostraCard(a,i)));
 
   // Métodos
+  montarMetodos(); // garante estrutura
   $$("#metodos input[type='checkbox']").forEach((chk,i)=>{ chk.checked = !!r.metodos[i]?.aplicado; });
 
   // Resultados
@@ -132,16 +152,12 @@ function preencherForm(r){
   (r.resultados||[]).forEach((row,i)=>$("#tblResultados tbody").appendChild(resultadoRow(row,i)));
 
   // Imagens
-  if ($("#imagens")) {
-    $("#imagens").innerHTML = "";
-    (r.imagens||[]).forEach(src => $("#imagens").appendChild(imagemCard(src)));
-  }
+  $("#imagens").innerHTML = "";
+  (r.imagens||[]).forEach(obj => $("#imagens").appendChild(imagemCard(obj)));
 
   // Tabelas extras
-  if ($("#tabelasExtras")) {
-    $("#tabelasExtras").innerHTML = "";
-    (r.tabelasExtras||[]).forEach(tbl => $("#tabelasExtras").appendChild(tabelaCard(tbl)));
-  }
+  $("#tabelasExtras").innerHTML = "";
+  (r.tabelasExtras||[]).forEach(tbl => $("#tabelasExtras").appendChild(tabelaCard(tbl)));
 }
 
 function coletarForm(){
@@ -178,14 +194,21 @@ function coletarForm(){
     conclusao:{ status:f.statusConclusao.value, observacoes:f.conclusaoObs.value.trim() },
     anexos:{ certificados:splitList(f.anexosCertificados.value), planilhas:splitList(f.anexosPlanilhas.value), fotos:splitList(f.anexosFotos.value) },
 
-    // NOVOS
-    imagens: $$("#imagens .img-url").map(inp => inp.value.trim()).filter(Boolean),
-    tabelasExtras: $$("#tabelasExtras table").map(tb => {
-      return $$("tr", tb).map(tr => [
+    // Imagens
+    imagens: $$("[data-img]").map(w => ({
+      src: $(".img-url", w).value.trim(),
+      alt: $(".img-alt", w).value.trim(),
+      legenda: $(".img-cap", w).value.trim()
+    })).filter(i=>i.src),
+
+    // Tabelas extras
+    tabelasExtras: $$("[data-tabela]").map(box => ({
+      titulo: $(".tb-title", box).value.trim(),
+      linhas: $$("tbody tr", box).map(tr => [
         (tr.cells[0]?.innerText||"").trim(),
         (tr.cells[1]?.innerText||"").trim()
-      ]);
-    }),
+      ])
+    })),
 
     updatedAt:Date.now()
   };
@@ -194,7 +217,7 @@ const splitList = s => (s||"").split(";").map(x=>x.trim()).filter(Boolean);
 
 /* ======= UI ======= */
 function amostraCard(a={},idx=0){
-  const d=document.createElement("div"); d.className="grid"; d.dataset.amostra=idx;
+  const d=el("div","grid"); d.dataset.amostra=idx;
   d.innerHTML=`<label>Descrição <input class="a-descricao" value="${a.descricao||""}" required></label>
   <label>Tipo <input class="a-tipo" value="${a.tipo||""}"></label>
   <label>Dimensão nominal <input class="a-dimensao" value="${a.dimensao||""}"></label>
@@ -204,76 +227,108 @@ function amostraCard(a={},idx=0){
   <label>Lote/Nº amostra <input class="a-lote" value="${a.lote||""}"></label>
   <label>Qtd. <input class="a-quantidade" value="${a.quantidade||""}" type="number" min="0"></label>
   <div><button type="button" class="secundario" data-remove>Remover</button></div>`;
-  $("button[data-remove]",d).addEventListener("click",()=>d.remove());
+  $("button[data-remove]",d).addEventListener("click",()=>{ d.remove(); announce("Amostra removida."); });
   return d;
 }
 function montarMetodos(){
   const w=$("#metodos"); w.innerHTML="";
   ENSAIOS_DEFAULT.forEach(m=>{
-    const lab=document.createElement("label"); lab.className="metodo";
+    const lab=el("label","metodo");
     lab.innerHTML=`<input type="checkbox"/><span><strong>${m.ensaio}</strong> — <em>${m.norma}</em></span>`;
     w.appendChild(lab);
   });
 }
 function resultadoRow(r={},i=0){
-  const tr=document.createElement("tr");
+  const tr=el("tr","");
   tr.innerHTML=`<td><input class="r-ensaio" value="${r.ensaio||""}"></td>
   <td><input class="r-resultado" value="${r.resultado||""}"></td>
   <td><input class="r-requisito" value="${r.requisito||""}"></td>
   <td><select class="r-conf"><option ${r.conformidade==="Conforme"?"selected":""}>Conforme</option>
   <option ${r.conformidade==="Não conforme"?"selected":""}>Não conforme</option></select></td>
   <td><button type="button" class="del">Excluir</button></td>`;
-  $(".del",tr).addEventListener("click",()=>tr.remove());
+  $(".del",tr).addEventListener("click",()=>{ tr.remove(); announce("Linha de resultado removida."); });
   return tr;
 }
-function addAmostra(){ $("#amostras").appendChild(amostraCard(novaAmostra())); }
-function addResultado(){ $("#tblResultados tbody").appendChild(resultadoRow({})); }
+function addAmostra(){ const card=amostraCard(novaAmostra()); $("#amostras").appendChild(card); card.querySelector("input")?.focus(); }
+function addResultado(){ const row=resultadoRow({}); $("#tblResultados tbody").appendChild(row); $(".r-ensaio",row)?.focus(); }
 
 /* ======= Imagens ======= */
-function imagemCard(src=""){
-  const div = document.createElement("div");
-  div.className = "grid";
+function imagemCard(obj={src:"", alt:"", legenda:""}){
+  const div = el("div","grid"); div.dataset.img = "1";
   div.innerHTML = `
     <label>Imagem (URL ou selecione arquivo)
-      <input class="img-url" type="url" value="${src}" placeholder="https://..."/>
+      <input class="img-url" type="url" value="${obj.src||""}" placeholder="https://..." />
       <input type="file" class="img-file" accept="image/*"/>
+    </label>
+    <label>Legenda
+      <input class="img-cap" value="${obj.legenda||""}" placeholder="Ex.: Foto da amostra A"/>
+    </label>
+    <label>Texto alternativo (acessibilidade)
+      <input class="img-alt" value="${obj.alt||""}" placeholder="Descrição breve da imagem"/>
     </label>
     <div><button type="button" class="secundario" data-remove>Remover imagem</button></div>
   `;
-  $("button[data-remove]", div).addEventListener("click", ()=>div.remove());
-  $(".img-file", div).addEventListener("change", e=>{
-    const file = e.target.files[0];
-    if(file){
-      const reader = new FileReader();
-      reader.onload = () => { $(".img-url",div).value = reader.result; };
-      reader.readAsDataURL(file);
-    }
+  $("button[data-remove]", div).addEventListener("click", ()=>{ div.remove(); announce("Imagem removida."); });
+  $(".img-file", div).addEventListener("change", async e=>{
+    const file = e.target.files?.[0]; if(!file) return;
+    const dataUrl = await fileToDataURLCompressed(file, 1200, 0.85);
+    $(".img-url",div).value = dataUrl;
+    announce("Imagem carregada.");
   });
   return div;
 }
-function addImagem(){ $("#imagens")?.appendChild(imagemCard()); }
+function addImagem(){ const w=imagemCard(); $("#imagens").appendChild(w); $(".img-url",w)?.focus(); }
+function fileToDataURLCompressed(file, maxW=1200, quality=0.85){
+  return new Promise((resolve, reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const scale = Math.min(1, maxW / img.width);
+        const canvas=document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx=canvas.getContext("2d");
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror=reject;
+      img.src=reader.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 /* ======= Tabelas Extras ======= */
-function tabelaCard(data=[["",""]]){
-  const div = document.createElement("div");
-  div.className = "extra-table";
-  let html = `<table class="tabela extra"><tbody>`;
-  data.forEach(row=>{
-    html += `<tr><td contenteditable="true">${row[0]}</td><td contenteditable="true">${row[1]}</td></tr>`;
+function tabelaCard(data={titulo:"", linhas:[["",""]]}){
+  const div = el("div","extra-table"); div.dataset.tabela = "1";
+  let html = `
+    <div class="grid">
+      <label>Título da tabela
+        <input class="tb-title" value="${data.titulo||""}" placeholder="Ex.: Medições dimensionais"/>
+      </label>
+    </div>
+    <table class="tabela extra"><tbody>`;
+  (data.linhas||[["",""]]).forEach(row=>{
+    html += `<tr><td contenteditable="true">${row[0]||""}</td><td contenteditable="true">${row[1]||""}</td></tr>`;
   });
   html += `</tbody></table>
-           <button type="button" class="secundario add-row">+ Linha</button>
-           <button type="button" class="secundario" data-remove>Remover tabela</button>`;
+           <div style="display:flex;gap:8px;margin-top:8px;">
+             <button type="button" class="secundario add-row">+ Linha</button>
+             <button type="button" class="secundario" data-remove>Remover tabela</button>
+           </div>`;
   div.innerHTML = html;
+
   $(".add-row", div).addEventListener("click", ()=>{
     const tr = document.createElement("tr");
     tr.innerHTML = `<td contenteditable="true"></td><td contenteditable="true"></td>`;
     $("tbody", div).appendChild(tr);
   });
-  $("button[data-remove]", div).addEventListener("click", ()=>div.remove());
+  $("button[data-remove]", div).addEventListener("click", ()=>{ div.remove(); announce("Tabela removida."); });
   return div;
 }
-function addTabela(){ $("#tabelasExtras")?.appendChild(tabelaCard()); }
+function addTabela(){ const t=tabelaCard({titulo:"",linhas:[["",""]]}); $("#tabelasExtras").appendChild(t); $(".tb-title",t)?.focus(); }
 
 /* ======= Lista lateral ======= */
 function desenharLista(){
@@ -283,25 +338,26 @@ function desenharLista(){
     .filter(r=>[r.numeroRelatorio,r.responsavelTecnico,r.laboratorio].join(" ").toLowerCase().includes(termo))
     .sort((a,b)=>b.updatedAt-a.updatedAt)
     .forEach(r=>{
-      const li=document.createElement("li");
+      const li=el("li","");
       li.innerHTML=`<strong>${r.numeroRelatorio||"(sem nº)"} – ${r.responsavelTecnico||"?"}</strong>
       <span class="meta">${new Date(r.updatedAt).toLocaleString()} • ${r.laboratorio||""}</span>
       <div class="row-actions"><button data-open>Abrir</button><button data-delete class="del">Apagar</button></div>`;
-      $("button[data-open]",li).addEventListener("click",()=>{atual=r;preencherForm(atual);});
-      $("button[data-delete]",li).addEventListener("click",()=>{if(confirm("Apagar?")){relatorios=relatorios.filter(x=>x.id!==r.id);persistAll();desenharLista();}});
+      $("button[data-open]",li).addEventListener("click",()=>{atual=r;preencherForm(atual); announce("Relatório carregado.");});
+      $("button[data-delete]",li).addEventListener("click",()=>{if(confirm("Apagar?")){relatorios=relatorios.filter(x=>x.id!==r.id);persistAll();desenharLista();announce("Relatório apagado.");}});
       ul.appendChild(li);
     });
   if(!ul.children.length){
-    const li=document.createElement("li"); li.textContent="Nenhum relatório salvo."; ul.appendChild(li);
+    const li=el("li",""); li.textContent="Nenhum relatório salvo."; ul.appendChild(li);
   }
 }
 
 /* ======= Exportar / Importar ======= */
 function exportarJSON(){
-  const blob=new Blob([JSON.stringify(coletarForm(),null,2)],{type:"application/json"});
+  const data = coletarForm();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`relatorio-${($("#formRelatorio").numeroRelatorio.value||"sem-numero")}.json`;
+  a.download=`relatorio-${sanitizeFileName(data.numeroRelatorio)||"ensaio"}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -311,9 +367,10 @@ function importarJSON(ev){
   reader.onload=()=>{
     try{
       const data=JSON.parse(reader.result);
-      atual={...novoRelatorio(),...data}; // mantém defaults + dados importados
+      atual={...novoRelatorio(),...data}; // defaults + dados importados
       preencherForm(atual);
-      salvarAtual();
+      salvarAtualSilencioso();
+      announce("Relatório importado.");
     }catch(e){ alert("Arquivo inválido."); }
     ev.target.value="";
   };
@@ -323,7 +380,6 @@ function importarJSON(ev){
 /* ======= Helpers PDF ======= */
 function loadImageAsDataURL(url){
   return new Promise((resolve, reject) => {
-    // Se já for dataURL/base64, retorna direto
     if (/^data:image\//i.test(url)) return resolve(url);
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -347,7 +403,6 @@ async function gerarPDF(){
   const doc=new jsPDF({unit:"pt",format:"a4"});
   const r=coletarForm();
 
-  // Dimensões e helpers
   const PAGE_W = doc.internal.pageSize.getWidth();
   const PAGE_H = doc.internal.pageSize.getHeight();
   const MARGIN_X = 40;
@@ -358,8 +413,8 @@ async function gerarPDF(){
   const addHeader = () => {
     doc.setFontSize(16); doc.setTextColor(THEME.ink); doc.setFont("helvetica","bold");
     doc.text("Relatório de Ensaio – PVC-U", MARGIN_X, y); y += 10;
-    doc.setDrawColor(190); doc.line(MARGIN_X, y, PAGE_W - MARGIN_X, y);
-    y += 20; doc.setFont("helvetica","normal");
+    doc.setDrawColor(180); doc.line(MARGIN_X, y, PAGE_W - MARGIN_X, y);
+    y += 18; doc.setFont("helvetica","normal");
   };
   const addFooter = (pageNum) => {
     doc.setFontSize(9); doc.setTextColor(120);
@@ -388,7 +443,6 @@ async function gerarPDF(){
   };
   const kv = (k,v) => paragraph(`${k}: ${v||"-"}`);
 
-  // Cabeçalho
   addHeader();
 
   // 1. Identificação
@@ -419,12 +473,12 @@ async function gerarPDF(){
   title("3. Objetivo do Ensaio");
   paragraph(r.objetivo);
 
-  // 4. Métodos aplicados
+  // 4. Métodos e Materiais
   title("4. Métodos e Materiais Empregados");
   const ativos = (r.metodos||[]).filter(m=>m.aplicado).map(m=>`${m.ensaio} — ${m.norma}`);
   paragraph(ativos.length ? ativos.join("\n") : "Nenhum método marcado.");
 
-  // 5. Resultados dos Ensaios
+  // 5. Resultados
   title("5. Resultados dos Ensaios");
   const rows = r.resultados || [];
   if (!rows.length) {
@@ -459,91 +513,81 @@ async function gerarPDF(){
   paragraph(`Planilhas/Gráficos: ${(anex.planilhas||[]).join("; ") || "-"}`);
   paragraph(`Fotos das amostras: ${(anex.fotos||[]).join("; ") || "-"}`);
 
-  // 9. Imagens (grade 2×N)
+  // 9. Imagens (2 colunas) com legenda e alt
   if ((r.imagens||[]).length){
     title("9. Imagens");
-    const thumbW = 220;              // largura da miniatura
-    const thumbMaxH = 160;           // altura máxima
-    const gap = 14;                  // espaçamento
+    const thumbW = 220, thumbMaxH = 160, gap = 14;
     let col = 0;
     for (let i=0;i<r.imagens.length;i++){
-      const url = r.imagens[i];
+      const {src, alt, legenda} = r.imagens[i];
       try{
-        const dataUrl = await loadImageAsDataURL(url);
-        // Precisamos calcular a altura preservando proporção (assumindo largura alvo thumbW)
+        const dataUrl = await loadImageAsDataURL(src);
         const img = new Image(); img.src = dataUrl;
         await new Promise(res => { if (img.complete) res(); else img.onload = res; });
         const ratio = img.naturalHeight / img.naturalWidth;
         const h = Math.min(thumbW * ratio, thumbMaxH);
         const w = thumbW;
-        ensureSpace(h + 10);
+        ensureSpace(h + 24);
         const x = MARGIN_X + col * (w + gap);
         doc.addImage(dataUrl, "JPEG", x, y, w, h);
-        // legenda opcional
         doc.setFontSize(9); doc.setTextColor(100);
-        doc.text(`Figura ${i+1}`, x, y + h + 10);
+        const cap = (legenda ? `Figura ${i+1}: ${legenda}` : `Figura ${i+1}`) + (alt ? ` — ${alt}` : "");
+        doc.text(doc.splitTextToSize(cap, w), x, y + h + 12);
         doc.setTextColor(THEME.ink);
-        if (col === 1){ y += h + 26; col = 0; } else { col = 1; }
-      }catch(err){
+        if (col === 1){ y += h + 30; col = 0; } else { col = 1; }
+      }catch{
         ensureSpace(14);
         doc.setFontSize(10); doc.setTextColor(150);
         doc.text(`(Não foi possível carregar a imagem ${i+1})`, MARGIN_X, y);
         y += 16; doc.setTextColor(THEME.ink);
       }
     }
-    // Se terminou na coluna 1, desce uma linha para separar da próxima seção
     if (col === 1) y += 8;
   }
 
-  // 10. Tabelas adicionais (2 colunas, texto)
+  // 10. Tabelas adicionais (2 colunas, com título)
   if ((r.tabelasExtras||[]).length){
     title("10. Tabelas adicionais");
-    const colW = (PAGE_W - 2*MARGIN_X - 20) / 2; // duas colunas com um gap
+    const colW = (PAGE_W - 2*MARGIN_X - 20) / 2;
     const lineH = 14;
 
     (r.tabelasExtras||[]).forEach((tbl, idxTbl) => {
-      ensureSpace(18);
+      ensureSpace(22);
+      const head = tbl.titulo ? `Tabela ${idxTbl+1} — ${tbl.titulo}` : `Tabela ${idxTbl+1}`;
       doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
-      doc.text(`Tabela ${idxTbl+1}`, MARGIN_X, y); y += 12;
+      doc.text(head, MARGIN_X, y); y += 12;
       doc.setFont("helvetica","normal"); doc.setFontSize(10);
 
-      if (!tbl || !tbl.length){
-        paragraph("(sem dados)");
-        return;
-      }
+      const linhas = tbl.linhas || [];
+      if (!linhas.length){ paragraph("(sem dados)"); return; }
 
-      // Cabeçalho visual leve (sem linhas)
       ensureSpace(lineH);
       doc.setFont("helvetica","bold");
+      doc.setTextColor(THEME.brand);
       doc.text("Coluna 1", MARGIN_X, y);
       doc.text("Coluna 2", MARGIN_X + colW + 20, y);
+      doc.setTextColor(THEME.ink);
       doc.setFont("helvetica","normal");
       y += 10;
 
-      // Linhas
-      tbl.forEach((row) => {
+      linhas.forEach(row => {
         const c1 = (row?.[0] ?? "").toString();
         const c2 = (row?.[1] ?? "").toString();
         const c1Lines = doc.splitTextToSize(c1, colW);
         const c2Lines = doc.splitTextToSize(c2, colW);
         const h = Math.max(c1Lines.length, c2Lines.length) * lineH;
-
         ensureSpace(h + 4);
-        // col1
         c1Lines.forEach((ln, i) => doc.text(ln, MARGIN_X, y + i*lineH));
-        // col2
         c2Lines.forEach((ln, i) => doc.text(ln, MARGIN_X + colW + 20, y + i*lineH));
-
         y += h + 4;
       });
 
-      y += 6; // espaçamento depois da tabela
+      y += 6;
     });
   }
 
-  // Footer final e salvar
   addFooter(doc.internal.getNumberOfPages());
-  doc.save(`relatorio-${r.numeroRelatorio||"ensaio"}.pdf`);
+  doc.save(`relatorio-${sanitizeFileName(r.numeroRelatorio)||"ensaio"}.pdf`);
 }
 
 /* ======= PDF (layout HTML) ======= */
@@ -551,7 +595,7 @@ function gerarPDFhtml(){
   const relatorio=$("#formRelatorio");
   html2pdf().set({
     margin:0.5,
-    filename:`relatorio-${($("#formRelatorio").numeroRelatorio.value||"ensaio")}.pdf`,
+    filename:`relatorio-${sanitizeFileName($("#formRelatorio").numeroRelatorio.value)||"ensaio"}.pdf`,
     image:{type:'jpeg',quality:0.98},
     html2canvas:{scale:2, useCORS:true},
     jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
