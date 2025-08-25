@@ -1,112 +1,229 @@
 :root{
-  /* Paleta clara 60-30-10 */
-  --bg:#F6F8FC;           /* 60% – fundo do app */
-  --panel:#EEF2F9;        /* 30% – painel/lateral */
-  --card:#FFFFFF;         /* 30% – cartões/fields/tabelas */
-  --ink:#0F172A;          /* texto principal */
-  --muted:#5B667A;        /* textos secundários */
-  --border:#D6DEE9;       /* linhas/bordas suaves */
-  --brand:#2563EB;        /* 10% – acento principal (azul) */
-  --brand-weak:#E8F0FF;   /* fundo leve p/ realces */
-  --success:#16A34A;      /* verde */
-  --danger:#DC2626;       /* vermelho */
-  --shadow:0 6px 20px rgba(17, 24, 39, .08);
+  /* —— Paleta 60-30-10 moderna —— */
+  --bg:#F9FAFB;              /* 60% — fundo geral */
+  --panel:#F3F6FB;           /* 30% — painel lateral */
+  --card:#FFFFFF;            /* 30% — cartões e campos */
+
+  --ink:#0B1220;             /* texto principal */
+  --muted:#5F6B84;           /* texto secundário */
+  --border:#E7ECF3;          /* bordas suaves */
+
+  /* Acentos */
+  --brand:#0EA5A4;           /* 10% — teal 500 (vivo sem pesar) */
+  --brand-hover:#0D9488;     /* teal 600 */
+  --brand-weak:#DFF7F6;      /* fundo sutil para realces/thead/focus */
+
+  --accent:#F97316;          /* coral/laranja para ações especiais */
+  --accent-hover:#EA6A10;
+
+  /* Estados */
+  --success:#22C55E;         /* verde vivo */
+  --danger:#E11D48;          /* vermelho/rose forte */
+
+  /* Efeitos */
+  --ring:0 0 0 4px rgba(14,165,164,.18);
+  --shadow:0 10px 30px rgba(27, 39, 69, .08);
+  --shadow-sm:0 6px 18px rgba(27, 39, 69, .07);
 }
 
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0;
-  font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+  font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
   color:var(--ink);
   background:var(--bg);
 }
 
+/* Topbar */
 .topbar{
-  padding:16px 20px;background:#fff;border-bottom:1px solid var(--border);
+  padding:16px 20px;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;gap:16px;
   position:sticky;top:0;z-index:10;
+  backdrop-filter:saturate(140%) blur(4px);
 }
-.topbar h1{margin:0;font-size:20px}
+.topbar h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 
+/* Botões */
 button,.import{
   border:1px solid var(--brand);
-  background:#fff;color:var(--brand);
-  padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s ease;
+  background:var(--brand);
+  color:#fff;
+  padding:10px 12px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:transform .05s ease, box-shadow .2s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  box-shadow:var(--shadow-sm);
 }
-button:hover,.import:hover{background:var(--brand-weak)}
+button:hover,.import:hover{background:var(--brand-hover)}
 button:active{transform:translateY(1px)}
 .import{display:inline-flex;align-items:center;gap:8px}
 .import input{display:none}
 
-.secundario{border-color:var(--border);color:var(--ink)}
-.secundario:hover{background:#F2F6FF;border-color:#C9D7F2}
+/* Botão secundário (ghost) */
+.secundario{
+  background:transparent;
+  color:var(--ink);
+  border-color:var(--border);
+  box-shadow:none;
+}
+.secundario:hover{
+  background:var(--brand-weak);
+  border-color:#CFEFEB;
+}
 
-.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 66px)}
+/* Botão de ênfase (coral) - opcional se quiser aplicar em alguma ação */
+.btn-accent{
+  background:var(--accent);
+  border-color:var(--accent);
+}
+.btn-accent:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 
+/* Layout */
+.layout{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  min-height:calc(100vh - 66px);
+  gap:0;
+}
+
+/* Lista lateral */
 .lista-relatorios{
-  background:var(--panel);border-right:1px solid var(--border);padding:14px;
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  padding:16px;
 }
-.aside-head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
-.aside-head h2{margin:0;font-size:16px}
+.aside-head{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.aside-head h2{margin:0;font-size:16px;font-weight:700}
 #filtroLista{
-  flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--border);
-  background:#fff;color:var(--ink);outline:none;
+  flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+  background:var(--card);color:var(--ink);outline:none;
 }
-#filtroLista:focus{box-shadow:0 0 0 3px rgba(37,99,235,.15);border-color:#B8CCFF}
+#filtroLista:focus{box-shadow:var(--ring);border-color:#BFE9E7}
 
-#listaRelatorios{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+#listaRelatorios{
+  list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px
+}
 #listaRelatorios li{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:10px;box-shadow:var(--shadow);
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px;
+  box-shadow:var(--shadow);
+  transition:border-color .15s ease, transform .05s ease;
 }
-#listaRelatorios li:hover{border-color:#BFD0F8}
-#listaRelatorios .meta{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-#listaRelatorios .row-actions{margin-top:8px;display:flex;gap:8px}
+#listaRelatorios li:hover{border-color:#CFE9E7;transform:translateY(-1px)}
+#listaRelatorios .meta{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+#listaRelatorios .row-actions{margin-top:10px;display:flex;gap:8px}
 
-.conteudo{padding:18px}
+/* Conteúdo */
+.conteudo{padding:22px}
 
+/* Cards/Fieldsets */
 form fieldset{
-  border:1px solid var(--border);background:var(--card);border-radius:14px;
-  padding:14px 14px 10px;margin:0 0 14px;box-shadow:var(--shadow);
+  border:1px solid var(--border);
+  background:var(--card);
+  border-radius:16px;
+  padding:16px 16px 12px;
+  margin:0 0 16px;
+  box-shadow:var(--shadow);
 }
-legend{padding:0 8px;color:var(--brand);font-weight:600}
+legend{
+  padding:0 10px;
+  color:var(--brand);
+  font-weight:700;
+  letter-spacing:.2px;
+}
 
+/* Inputs */
 label{display:flex;flex-direction:column;gap:6px}
 input,textarea,select{
-  padding:10px;border-radius:10px;border:1px solid var(--border);
-  background:#fff;color:var(--ink);outline:none;
+  padding:12px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#fff;color:var(--ink);
+  outline:none;
+  transition:box-shadow .15s ease,border-color .15s ease,background .15s ease;
 }
 input::placeholder,textarea::placeholder{color:#8A94A7}
 input:focus,textarea:focus,select:focus{
-  border-color:#B8CCFF;box-shadow:0 0 0 3px rgba(37,99,235,.15);
+  border-color:#BFE9E7;
+  box-shadow:var(--ring);
+  background:#FEFFFF;
 }
 
-.hint{color:var(--muted);margin-top:0;margin-bottom:10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+/* Dicas */
+.hint{color:var(--muted);margin-top:2px;margin-bottom:10px}
+
+/* Grids */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 .inline{display:inline-flex;align-items:center;gap:8px}
-.metodos{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
-.metodos label{flex-direction:row;align-items:center;gap:10px;padding:8px;border:1px solid var(--border);border-radius:10px;background:#fff}
+
+/* Métodos (checkbox cards) */
+.metodos{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px
+}
+.metodos label{
+  flex-direction:row;align-items:center;gap:12px;
+  padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:#fff;
+  transition:box-shadow .15s ease, border-color .15s ease, transform .05s ease;
+}
+.metodos label:hover{border-color:#CFE9E7;box-shadow:var(--shadow-sm);transform:translateY(-1px)}
 .metodos input[type="checkbox"]{width:18px;height:18px}
 
+/* Tabelas */
 .tabela{
-  width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;
-  background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)
+  width:100%;
+  border-collapse:separate;border-spacing:0;
+  overflow:hidden;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--shadow);
 }
 .tabela thead th{
-  text-align:left;padding:12px;background:var(--brand-weak);
-  border-bottom:1px solid var(--border);color:#1E293B
+  text-align:left;
+  padding:12px;
+  background:var(--brand-weak);
+  border-bottom:1px solid var(--border);
+  color:#12283A;
+  font-weight:700;
 }
-.tabela td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+.tabela tbody tr:nth-child(even) td{background:#FAFEFE} /* zebra suave */
+.tabela td{
+  padding:10px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
 .tabela tr:last-child td{border-bottom:none}
-.tabela button{background:#fff;border:1px solid var(--border);color:#374151}
-.tabela button:hover{background:#F5F8FF}
-.tabela .del{border-color:#F2C7C7;color:#8B1C1C}
-.tabela .del:hover{border-color:var(--danger);background:#FFF1F2;color:var(--danger)}
+.tabela button{
+  background:#fff;border:1px solid var(--border);color:#374151;border-radius:10px;padding:6px 10px;
+  transition:background .15s ease, border-color .15s ease, transform .05s ease;
+}
+.tabela button:hover{background:#F6FEFE;border-color:#CFE9E7}
+.tabela .del{border-color:#F6C9D4;color:#9A1230}
+.tabela .del:hover{border-color:var(--danger);background:#FFF1F5;color:var(--danger)}
 
-.rodape{padding:16px 20px;border-top:1px solid var(--border);background:#fff;text-align:center;color:var(--muted)}
+/* Seções novas (imagens e tabelas extras) */
+.extra-table{margin-bottom:10px}
+.tabela.extra td{font-size:14px}
+#imagens .grid{grid-template-columns:1fr 1fr;align-items:end}
 
+/* Rodapé */
+.rodape{
+  padding:16px 20px;border-top:1px solid var(--border);
+  background:var(--card);text-align:center;color:var(--muted)
+}
+
+/* Estado de foco visível para acessibilidade */
+button:focus, .import:focus, .secundario:focus, a:focus, input:focus, textarea:focus, select:focus{
+  outline:none; box-shadow:var(--ring);
+}
+
+/* Impressão clean (opcional) */
 @media print{
   .topbar,.lista-relatorios,.rodape,.secundario,#btnSalvar,#btnExportar,.import,#btnImprimir{display:none !important}
   body{background:#fff;color:#000}
