@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="pt-br">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,34 +7,37 @@
 
   <!-- Bibliotecas para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 
   <!-- Estilos -->
   <link rel="stylesheet" href="style.css" />
   <meta name="color-scheme" content="light only">
 </head>
-
 <body>
+  <!-- Link de pulo para acessibilidade -->
+  <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
+
   <header class="topbar" role="banner">
     <h1>Relatório de Ensaio – PVC-U</h1>
     <div class="actions" role="group" aria-label="Ações do relatório">
+      <button id="btnToggleAside" class="secundario" type="button" title="Mostrar/ocultar lista">☰ Lista</button>
       <button id="btnNovo" type="button" title="Criar relatório em branco">Novo</button>
       <button id="btnSalvar" type="button" title="Salvar no navegador">Salvar</button>
       <button id="btnExportar" type="button" title="Exportar este relatório em JSON">Exportar JSON</button>
       <button id="btnPDF" type="button" title="Gerar PDF com layout de texto">PDF (texto)</button>
       <button id="btnPDFhtml" type="button" title="Gerar PDF a partir do layout da página">PDF (layout)</button>
-
       <label class="import" for="inputImportar" title="Importar um arquivo JSON">
         Importar JSON
         <input type="file" id="inputImportar" accept="application/json" />
       </label>
-
       <button id="btnImprimir" type="button" title="Impressão do layout (sistema do navegador)">Imprimir</button>
     </div>
   </header>
 
   <main class="layout" id="app" role="main">
+    <!-- Região para anúncios acessíveis -->
+    <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Lista lateral -->
     <aside class="lista-relatorios" aria-label="Relatórios salvos">
       <div class="aside-head">
@@ -46,7 +48,7 @@
     </aside>
 
     <!-- Conteúdo principal -->
-    <section class="conteudo">
+    <section class="conteudo" id="conteudo">
       <form id="formRelatorio" novalidate>
         <!-- 1. Identificação do Relatório -->
         <fieldset>
@@ -68,7 +70,6 @@
               <input required name="laboratorio" autocomplete="organization" />
             </label>
           </div>
-
           <label>Normas de referência (separe por “;”)
             <input name="normasReferencia" placeholder="ABNT NBR 5648:2018; NBR 8219; EN 62321-3-1:2014; ..." />
           </label>
@@ -84,8 +85,7 @@
         <!-- 3. Objetivo do Ensaio -->
         <fieldset>
           <legend>3. Objetivo do Ensaio</legend>
-          <textarea name="objetivo" rows="3"
-            placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
+          <textarea name="objetivo" rows="3" placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
         </fieldset>
 
         <!-- 4. Métodos e Materiais Empregados -->
@@ -98,26 +98,28 @@
         <!-- 5. Resultados dos Ensaios -->
         <fieldset>
           <legend>5. Resultados dos Ensaios</legend>
-          <table class="tabela" id="tblResultados">
-            <thead>
-              <tr>
-                <th scope="col">Ensaio</th>
-                <th scope="col">Resultado obtido</th>
-                <th scope="col">Requisito normativo</th>
-                <th scope="col">Conformidade</th>
-                <th scope="col" aria-label="Ações"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div class="tabela-wrap">
+            <table class="tabela" id="tblResultados">
+              <caption class="sr-only">Tabela de resultados dos ensaios</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Ensaio</th>
+                  <th scope="col">Resultado obtido</th>
+                  <th scope="col">Requisito normativo</th>
+                  <th scope="col">Conformidade</th>
+                  <th scope="col" aria-label="Ações"></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
           <button type="button" class="secundario" id="btnAddResultado">+ Adicionar resultado</button>
         </fieldset>
 
         <!-- 6. Discussão dos Resultados -->
         <fieldset>
           <legend>6. Discussão dos Resultados</legend>
-          <textarea name="discussao" rows="4"
-            placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
+          <textarea name="discussao" rows="4" placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
         </fieldset>
 
         <!-- 7. Conclusão -->
@@ -133,8 +135,7 @@
               Não conforme
             </label>
           </div>
-          <textarea name="conclusaoObs" rows="3"
-            placeholder="Observações complementares e referências à norma."></textarea>
+          <textarea name="conclusaoObs" rows="3" placeholder="Observações complementares e referências à norma."></textarea>
         </fieldset>
 
         <!-- 8. Anexos -->
@@ -158,7 +159,7 @@
           <legend>9. Imagens</legend>
           <div id="imagens"></div>
           <button type="button" class="secundario" id="btnAddImagem">+ Adicionar imagem</button>
-          <p class="hint">Cole uma URL (https://...) ou selecione um arquivo local.</p>
+          <p class="hint">Você pode colar uma URL de imagem (https://...) ou escolher um arquivo local. Adicione <em>Legenda</em> e <em>Texto alternativo</em> para acessibilidade.</p>
         </fieldset>
 
         <!-- 10. Tabelas adicionais -->
@@ -166,10 +167,8 @@
           <legend>10. Tabelas adicionais</legend>
           <div id="tabelasExtras"></div>
           <button type="button" class="secundario" id="btnAddTabela">+ Adicionar tabela</button>
-          <p class="hint">Use para inserir dados experimentais complementares.</p>
+          <p class="hint">Use para inserir dados experimentais complementares. Dê um <em>Título</em> para cada tabela.</p>
         </fieldset>
-
-
 
         <input type="hidden" name="id" />
       </form>
@@ -180,8 +179,17 @@
     <small>© <span id="ano"></span> Laboratório – Relatórios digitais.</small>
   </footer>
 
+  <!-- VLibras: acessibilidade em LIBRAS (oficial) -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
   <!-- Script principal -->
   <script src="script.js" defer></script>
 </body>
-
 </html>
