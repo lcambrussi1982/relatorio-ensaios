@@ -269,3 +269,16 @@ button:focus,.import:focus,.secundario:focus,a:focus,input:focus,textarea:focus,
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+/* Utilitário para leitores de tela */
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+.sr-only-focusable:focus{position:static; width:auto; height:auto; margin:0; overflow:visible; clip:auto; white-space:normal;}
+
+/* Wrapper de tabela rolável (já tem no HTML) */
+.tabela-wrap{width:100%; overflow:auto}
+
+/* Toggle da lateral no mobile */
+@media (max-width:860px){
+  body.aside-collapsed .lista-relatorios{display:none}
+}
+
