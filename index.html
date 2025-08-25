@@ -1,148 +1,187 @@
 <!doctype html>
 <html lang="pt-br">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Relatório de Ensaio – PVC-U</title>
+
+  <!-- Bibliotecas para PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+    crossorigin="anonymous"></script>
+
+  <!-- Estilos -->
   <link rel="stylesheet" href="style.css" />
+  <meta name="color-scheme" content="light only">
 </head>
+
 <body>
-<header class="topbar">
-  <h1>Relatório de Ensaio – PVC-U</h1>
-  <div class="actions">
-    <button id="btnNovo">Novo</button>
-    <button id="btnSalvar">Salvar</button>
-    <button id="btnExportar">Exportar JSON</button>
-    <label class="import">
-      Importar JSON
-      <input type="file" id="inputImportar" accept="application/json" />
-    </label>
-    <button id="btnImprimir">Imprimir/PDF</button>
-  </div>
-</header>
+  <header class="topbar" role="banner">
+    <h1>Relatório de Ensaio – PVC-U</h1>
+    <div class="actions" role="group" aria-label="Ações do relatório">
+      <button id="btnNovo" type="button" title="Criar relatório em branco">Novo</button>
+      <button id="btnSalvar" type="button" title="Salvar no navegador">Salvar</button>
+      <button id="btnExportar" type="button" title="Exportar este relatório em JSON">Exportar JSON</button>
+      <button id="btnPDF" type="button" title="Gerar PDF com layout de texto">PDF (texto)</button>
+      <button id="btnPDFhtml" type="button" title="Gerar PDF a partir do layout da página">PDF (layout)</button>
 
-<main class="layout">
-  <aside class="lista-relatorios" aria-label="Relatórios salvos">
-    <div class="aside-head">
-      <h2>Relatórios</h2>
-      <input id="filtroLista" placeholder="Buscar..." />
+      <label class="import" for="inputImportar" title="Importar um arquivo JSON">
+        Importar JSON
+        <input type="file" id="inputImportar" accept="application/json" />
+      </label>
+
+      <button id="btnImprimir" type="button" title="Impressão do layout (sistema do navegador)">Imprimir</button>
     </div>
-    <ul id="listaRelatorios"></ul>
-  </aside>
+  </header>
 
-  <section class="conteudo">
-    <form id="formRelatorio">
-      <!-- 1. Identificação do Relatório -->
-      <fieldset>
-        <legend>1. Identificação do Relatório</legend>
-        <div class="grid">
-          <label>Nº do Relatório
-            <input required name="numeroRelatorio" />
+  <main class="layout" id="app" role="main">
+    <!-- Lista lateral -->
+    <aside class="lista-relatorios" aria-label="Relatórios salvos">
+      <div class="aside-head">
+        <h2 style="margin:0">Relatórios</h2>
+        <input id="filtroLista" placeholder="Buscar..." type="search" aria-label="Buscar em relatórios salvos" />
+      </div>
+      <ul id="listaRelatorios" aria-live="polite"></ul>
+    </aside>
+
+    <!-- Conteúdo principal -->
+    <section class="conteudo">
+      <form id="formRelatorio" novalidate>
+        <!-- 1. Identificação do Relatório -->
+        <fieldset>
+          <legend>1. Identificação do Relatório</legend>
+          <div class="grid">
+            <label>Nº do Relatório
+              <input required name="numeroRelatorio" autocomplete="off" inputmode="text" />
+            </label>
+            <label>Revisão
+              <input name="revisao" autocomplete="off" inputmode="text" />
+            </label>
+            <label>Data de emissão
+              <input required name="dataEmissao" type="date" />
+            </label>
+            <label>Responsável Técnico
+              <input required name="responsavelTecnico" autocomplete="name" />
+            </label>
+            <label>Laboratório
+              <input required name="laboratorio" autocomplete="organization" />
+            </label>
+          </div>
+
+          <label>Normas de referência (separe por “;”)
+            <input name="normasReferencia" placeholder="ABNT NBR 5648:2018; NBR 8219; EN 62321-3-1:2014; ..." />
           </label>
-          <label>Revisão
-            <input name="revisao" />
-          </label>
-          <label>Data de emissão
-            <input required name="dataEmissao" type="date" />
-          </label>
-          <label>Responsável Técnico
-            <input required name="responsavelTecnico" />
-          </label>
-          <label>Laboratório
-            <input required name="laboratorio" />
-          </label>
-        </div>
+        </fieldset>
 
-        <label>Normas de referência (separe por “;”)
-          <input name="normasReferencia" placeholder="ABNT NBR 5648:2018; NBR 8219; EN 62321-3-1:2014; ..." />
-        </label>
-      </fieldset>
+        <!-- 2. Identificação da(s) Amostra(s) -->
+        <fieldset>
+          <legend>2. Identificação da(s) Amostra(s)</legend>
+          <div id="amostras"></div>
+          <button type="button" class="secundario" id="btnAddAmostra">+ Adicionar amostra</button>
+        </fieldset>
 
-      <!-- 2. Identificação da(s) Amostra(s) -->
-      <fieldset>
-        <legend>2. Identificação da Amostra</legend>
-        <div id="amostras"></div>
-        <button type="button" class="secundario" id="btnAddAmostra">+ Adicionar amostra</button>
-      </fieldset>
+        <!-- 3. Objetivo do Ensaio -->
+        <fieldset>
+          <legend>3. Objetivo do Ensaio</legend>
+          <textarea name="objetivo" rows="3"
+            placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
+        </fieldset>
 
-      <!-- 3. Objetivo do Ensaio -->
-      <fieldset>
-        <legend>3. Objetivo do Ensaio</legend>
-        <textarea name="objetivo" rows="3" placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com os requisitos das normas técnicas aplicáveis."></textarea>
-      </fieldset>
+        <!-- 4. Métodos e Materiais Empregados -->
+        <fieldset>
+          <legend>4. Métodos e Materiais Empregados</legend>
+          <p class="hint">Marque os métodos aplicados no relatório.</p>
+          <div id="metodos" class="metodos"></div>
+        </fieldset>
 
-      <!-- 4. Métodos e Materiais Empregados -->
-      <fieldset>
-        <legend>4. Métodos e Materiais Empregados</legend>
-        <p class="hint">Marque os métodos aplicados no relatório.</p>
-        <div id="metodos" class="metodos"></div>
-      </fieldset>
+        <!-- 5. Resultados dos Ensaios -->
+        <fieldset>
+          <legend>5. Resultados dos Ensaios</legend>
+          <table class="tabela" id="tblResultados">
+            <thead>
+              <tr>
+                <th scope="col">Ensaio</th>
+                <th scope="col">Resultado obtido</th>
+                <th scope="col">Requisito normativo</th>
+                <th scope="col">Conformidade</th>
+                <th scope="col" aria-label="Ações"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <button type="button" class="secundario" id="btnAddResultado">+ Adicionar resultado</button>
+        </fieldset>
 
-      <!-- 5. Resultados dos Ensaios -->
-      <fieldset>
-        <legend>5. Resultados dos Ensaios</legend>
-        <table class="tabela" id="tblResultados">
-          <thead>
-            <tr>
-              <th>Ensaio</th>
-              <th>Resultado obtido</th>
-              <th>Requisito normativo</th>
-              <th>Conformidade</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <button type="button" class="secundario" id="btnAddResultado">+ Adicionar resultado</button>
-      </fieldset>
+        <!-- 6. Discussão dos Resultados -->
+        <fieldset>
+          <legend>6. Discussão dos Resultados</legend>
+          <textarea name="discussao" rows="4"
+            placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
+        </fieldset>
 
-      <!-- 6. Discussão dos Resultados -->
-      <fieldset>
-        <legend>6. Discussão dos Resultados</legend>
-        <textarea name="discussao" rows="4" placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
-      </fieldset>
+        <!-- 7. Conclusão -->
+        <fieldset>
+          <legend>7. Conclusão</legend>
+          <div class="grid">
+            <label class="inline">
+              <input type="radio" name="statusConclusao" value="Conforme" checked />
+              Conforme
+            </label>
+            <label class="inline">
+              <input type="radio" name="statusConclusao" value="Não conforme" />
+              Não conforme
+            </label>
+          </div>
+          <textarea name="conclusaoObs" rows="3"
+            placeholder="Observações complementares e referências à norma."></textarea>
+        </fieldset>
 
-      <!-- 7. Conclusão -->
-      <fieldset>
-        <legend>7. Conclusão</legend>
-        <div class="grid">
-          <label class="inline">
-            <input type="radio" name="statusConclusao" value="Conforme" checked />
-            Conforme
-          </label>
-          <label class="inline">
-            <input type="radio" name="statusConclusao" value="Não conforme" />
-            Não conforme
-          </label>
-        </div>
-        <textarea name="conclusaoObs" rows="3" placeholder="Observações complementares e referências à norma."></textarea>
-      </fieldset>
+        <!-- 8. Anexos -->
+        <fieldset>
+          <legend>8. Anexos</legend>
+          <div class="grid">
+            <label>Certificados de calibração (URLs; separe por “;”)
+              <input name="anexosCertificados" placeholder="https://...; https://..." inputmode="url" />
+            </label>
+            <label>Planilhas/Gráficos (URLs; separe por “;”)
+              <input name="anexosPlanilhas" placeholder="https://...; https://..." inputmode="url" />
+            </label>
+            <label>Fotos das amostras (URLs; separe por “;”)
+              <input name="anexosFotos" placeholder="https://...; https://..." inputmode="url" />
+            </label>
+          </div>
+        </fieldset>
 
-      <!-- 8. Anexos -->
-      <fieldset>
-        <legend>8. Anexos</legend>
-        <div class="grid">
-          <label>Certificados de calibração (URLs; separe por “;”)
-            <input name="anexosCertificados" placeholder="https://...; https://..." />
-          </label>
-          <label>Planilhas/Gráficos (URLs; separe por “;”)
-            <input name="anexosPlanilhas" placeholder="https://...; https://..." />
-          </label>
-          <label>Fotos das amostras (URLs; separe por “;”)
-            <input name="anexosFotos" placeholder="https://...; https://..." />
-          </label>
-        </div>
-      </fieldset>
+        <!-- 9. Imagens -->
+        <fieldset>
+          <legend>9. Imagens</legend>
+          <div id="imagens"></div>
+          <button type="button" class="secundario" id="btnAddImagem">+ Adicionar imagem</button>
+          <p class="hint">Cole uma URL (https://...) ou selecione um arquivo local.</p>
+        </fieldset>
 
-      <input type="hidden" name="id" />
-    </form>
-  </section>
-</main>
+        <!-- 10. Tabelas adicionais -->
+        <fieldset>
+          <legend>10. Tabelas adicionais</legend>
+          <div id="tabelasExtras"></div>
+          <button type="button" class="secundario" id="btnAddTabela">+ Adicionar tabela</button>
+          <p class="hint">Use para inserir dados experimentais complementares.</p>
+        </fieldset>
 
-<footer class="rodape">
-  <small>© <span id="ano"></span> Laboratório – Relatórios digitais. </small>
-</footer>
 
-<script src="script.js"></script>
+
+        <input type="hidden" name="id" />
+      </form>
+    </section>
+  </main>
+
+  <footer class="rodape" role="contentinfo">
+    <small>© <span id="ano"></span> Laboratório – Relatórios digitais.</small>
+  </footer>
+
+  <!-- Script principal -->
+  <script src="script.js" defer></script>
 </body>
+
 </html>
