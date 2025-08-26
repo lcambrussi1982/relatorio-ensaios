@@ -570,7 +570,7 @@ function gerarPDFhtml(){
     jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
   }).from(relatorio).save();
 }
-// Excluir normas selecionadas
+// Excluir normas selecionadas (com confirmação)
 document.getElementById("btnDelNorma").addEventListener("click", () => {
   const select = document.getElementById("normasSelect");
   const selecionados = Array.from(select.selectedOptions);
@@ -580,5 +580,13 @@ document.getElementById("btnDelNorma").addEventListener("click", () => {
     return;
   }
 
-  selecionados.forEach(opt => opt.remove());
+  // Monta mensagem com as normas selecionadas
+  const nomes = selecionados.map(opt => opt.text).join("\n- ");
+  const confirmar = confirm(
+    `Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`
+  );
+
+  if (confirmar) {
+    selecionados.forEach(opt => opt.remove());
+  }
 });
