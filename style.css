@@ -82,7 +82,7 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 10px 18px;
-  background: #fff;
+  background: #969bff;
   border-bottom: 2px solid var(--brand);
   box-shadow: var(--shadow);
 }
