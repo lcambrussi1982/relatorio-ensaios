@@ -3,22 +3,30 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Relatório de Ensaio – PVC-U</title>
+  <title>Chiva Plásticos — Relatório de Ensaio PVC-U</title>
 
   <!-- Bibliotecas para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 
-  <!-- Estilos -->
   <link rel="stylesheet" href="style.css" />
   <meta name="color-scheme" content="light only">
+  <meta name="theme-color" content="#E1262D">
 </head>
 <body>
-  <!-- Link de pulo para acessibilidade -->
   <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
 
+  <!-- TOPBAR -->
   <header class="topbar" role="banner">
-    <h1>Relatório de Ensaio – PVC-U</h1>
+    <div class="brand" aria-label="Chiva Plásticos">
+      <!-- troque o src se estiver em outro caminho -->
+      <img src="chiva.png" alt="Chiva Plásticos" />
+      <div class="brand-text">
+        <span class="brand-title">Relatórios de Ensaio</span>
+        <span class="brand-sub">PVC-U • Conexões</span>
+      </div>
+    </div>
+
     <div class="actions" role="group" aria-label="Ações do relatório">
       <button id="btnToggleAside" class="secundario" type="button" title="Mostrar/ocultar lista">☰ Lista</button>
       <button id="btnNovo" type="button" title="Criar relatório em branco">Novo</button>
@@ -35,30 +43,29 @@
   </header>
 
   <main class="layout" id="app" role="main">
-    <!-- Região para anúncios acessíveis -->
     <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-    <!-- Lista lateral -->
+    <!-- Lateral: Relatórios -->
     <aside class="lista-relatorios" aria-label="Relatórios salvos">
       <div class="aside-head">
-        <h2 style="margin:0">Relatórios</h2>
+        <h2>Relatórios</h2>
         <input id="filtroLista" placeholder="Buscar..." type="search" aria-label="Buscar em relatórios salvos" />
       </div>
       <ul id="listaRelatorios" aria-live="polite"></ul>
     </aside>
 
-    <!-- Conteúdo principal -->
-    <section class="conteudo" id="conteudo">
+    <!-- Conteúdo -->
+    <section class="conteudo" id="conteudo" tabindex="-1">
       <form id="formRelatorio" novalidate>
-        <!-- 1. Identificação do Relatório -->
+        <!-- 1. Identificação -->
         <fieldset>
           <legend>1. Identificação do Relatório</legend>
           <div class="grid">
             <label>Nº do Relatório
-              <input required name="numeroRelatorio" autocomplete="off" inputmode="text" />
+              <input required name="numeroRelatorio" autocomplete="off" />
             </label>
             <label>Revisão
-              <input name="revisao" autocomplete="off" inputmode="text" />
+              <input name="revisao" autocomplete="off" />
             </label>
             <label>Data de emissão
               <input required name="dataEmissao" type="date" />
@@ -70,32 +77,43 @@
               <input required name="laboratorio" autocomplete="organization" />
             </label>
           </div>
-          <label>Normas de referência (separe por “;”)
-            <input name="normasReferencia" placeholder="ABNT NBR 5648:2018; NBR 8219; EN 62321-3-1:2014; ..." />
-          </label>
+
+          <!-- Combo de Normas de Referência -->
+          <div class="combo">
+            <label for="normasSelect">Normas de referência (selecione 1+)</label>
+            <div class="combo-grid">
+              <select id="normasSelect" multiple size="6" aria-describedby="normaHelp"></select>
+              <div class="addbox">
+                <label for="novaNorma" class="small">Adicionar nova norma</label>
+                <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
+                <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
+                <p id="normaHelp" class="hint">Use Ctrl/Cmd para selecionar múltiplas normas. Você pode incluir novas normas pelo campo ao lado.</p>
+              </div>
+            </div>
+          </div>
         </fieldset>
 
-        <!-- 2. Identificação da(s) Amostra(s) -->
+        <!-- 2. Amostras -->
         <fieldset>
           <legend>2. Identificação da(s) Amostra(s)</legend>
           <div id="amostras"></div>
           <button type="button" class="secundario" id="btnAddAmostra">+ Adicionar amostra</button>
         </fieldset>
 
-        <!-- 3. Objetivo do Ensaio -->
+        <!-- 3. Objetivo -->
         <fieldset>
           <legend>3. Objetivo do Ensaio</legend>
           <textarea name="objetivo" rows="3" placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
         </fieldset>
 
-        <!-- 4. Métodos e Materiais Empregados -->
+        <!-- 4. Métodos -->
         <fieldset>
           <legend>4. Métodos e Materiais Empregados</legend>
           <p class="hint">Marque os métodos aplicados no relatório.</p>
           <div id="metodos" class="metodos"></div>
         </fieldset>
 
-        <!-- 5. Resultados dos Ensaios -->
+        <!-- 5. Resultados -->
         <fieldset>
           <legend>5. Resultados dos Ensaios</legend>
           <div class="tabela-wrap">
@@ -103,11 +121,11 @@
               <caption class="sr-only">Tabela de resultados dos ensaios</caption>
               <thead>
                 <tr>
-                  <th scope="col">Ensaio</th>
-                  <th scope="col">Resultado obtido</th>
-                  <th scope="col">Requisito normativo</th>
-                  <th scope="col">Conformidade</th>
-                  <th scope="col" aria-label="Ações"></th>
+                  <th>Ensaio</th>
+                  <th>Resultado obtido</th>
+                  <th>Requisito normativo</th>
+                  <th>Conformidade</th>
+                  <th aria-label="Ações"></th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -116,7 +134,7 @@
           <button type="button" class="secundario" id="btnAddResultado">+ Adicionar resultado</button>
         </fieldset>
 
-        <!-- 6. Discussão dos Resultados -->
+        <!-- 6. Discussão -->
         <fieldset>
           <legend>6. Discussão dos Resultados</legend>
           <textarea name="discussao" rows="4" placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
@@ -126,14 +144,8 @@
         <fieldset>
           <legend>7. Conclusão</legend>
           <div class="grid">
-            <label class="inline">
-              <input type="radio" name="statusConclusao" value="Conforme" checked />
-              Conforme
-            </label>
-            <label class="inline">
-              <input type="radio" name="statusConclusao" value="Não conforme" />
-              Não conforme
-            </label>
+            <label class="inline"><input type="radio" name="statusConclusao" value="Conforme" checked />Conforme</label>
+            <label class="inline"><input type="radio" name="statusConclusao" value="Não conforme" />Não conforme</label>
           </div>
           <textarea name="conclusaoObs" rows="3" placeholder="Observações complementares e referências à norma."></textarea>
         </fieldset>
@@ -159,7 +171,7 @@
           <legend>9. Imagens</legend>
           <div id="imagens"></div>
           <button type="button" class="secundario" id="btnAddImagem">+ Adicionar imagem</button>
-          <p class="hint">Você pode colar uma URL de imagem (https://...) ou escolher um arquivo local. Adicione <em>Legenda</em> e <em>Texto alternativo</em> para acessibilidade.</p>
+          <p class="hint">Cole uma URL de imagem ou selecione um arquivo. Inclua legenda e texto alternativo.</p>
         </fieldset>
 
         <!-- 10. Tabelas adicionais -->
@@ -167,7 +179,6 @@
           <legend>10. Tabelas adicionais</legend>
           <div id="tabelasExtras"></div>
           <button type="button" class="secundario" id="btnAddTabela">+ Adicionar tabela</button>
-          <p class="hint">Use para inserir dados experimentais complementares. Dê um <em>Título</em> para cada tabela.</p>
         </fieldset>
 
         <input type="hidden" name="id" />
@@ -176,20 +187,17 @@
   </main>
 
   <footer class="rodape" role="contentinfo">
-    <small>© <span id="ano"></span> Laboratório – Relatórios digitais.</small>
+    <small>© <span id="ano"></span> Chiva Plásticos — Relatórios digitais.</small>
   </footer>
 
-  <!-- VLibras: acessibilidade em LIBRAS (oficial) -->
+  <!-- VLibras -->
   <div vw class="enabled">
     <div vw-access-button class="active"></div>
-    <div vw-plugin-wrapper>
-      <div class="vw-plugin-top-wrapper"></div>
-    </div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
   </div>
   <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
   <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
 
-  <!-- Script principal -->
   <script src="script.js" defer></script>
 </body>
 </html>
