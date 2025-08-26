@@ -190,13 +190,28 @@
     <small>© <span id="ano"></span> Chiva Plásticos — Relatórios digitais.</small>
   </footer>
 
-  <!-- VLibras -->
-  <div vw class="enabled">
-    <div vw-access-button class="active"></div>
-    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
-  </div>
-  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-  <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+<!-- VLibras -->
+<div vw class="enabled">
+  <div vw-access-button class="active"></div>
+  <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+</div>
+<script>
+  (function initVLibras() {
+    function start() {
+      try { new window.VLibras.Widget('https://vlibras.gov.br/app'); }
+      catch (e) { console.error('VLibras init erro:', e); }
+    }
+    if (window.VLibras && window.VLibras.Widget) { start(); }
+    else {
+      var s = document.createElement('script');
+      s.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
+      s.defer = true;
+      s.onload = start;
+      document.head.appendChild(s);
+    }
+  })();
+</script>
+
 
   <script src="script.js" defer></script>
 </body>
