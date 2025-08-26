@@ -7,7 +7,7 @@
   --card: #FFFFFF;
   /* cartões */
   --ink: #0F1E3D;
-  /* texto principal */
+  /* texto principal (azul marinho) */
   --muted: #5C6B84;
   /* texto secundário */
   --border: #E2E8F0;
@@ -16,7 +16,6 @@
   --brand: #E1262D;
   /* vermelho Chiva */
   --brand-hover: #C81F25;
-  /* hover vermelho */
   --sea: #0077B6;
   /* azul da onda */
   --sea-weak: #E6F7FF;
@@ -33,6 +32,7 @@
   --fs-lg: clamp(18px, 2.2vw, 22px);
 }
 
+/* Reset básico */
 * {
   box-sizing: border-box
 }
@@ -59,7 +59,7 @@ body {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0
+  border: 0;
 }
 
 .sr-only-focusable:focus {
@@ -69,7 +69,7 @@ body {
   margin: 0;
   overflow: visible;
   clip: auto;
-  white-space: normal
+  white-space: normal;
 }
 
 /* Topbar */
@@ -82,7 +82,8 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 10px 18px;
-  background: #969bff;
+  background: #0F1E3D;
+  /* azul marinho do tema */
   border-bottom: 2px solid var(--brand);
   box-shadow: var(--shadow);
 }
@@ -108,12 +109,12 @@ body {
 .brand-title {
   font-size: 18px;
   font-weight: 800;
-  color: var(--brand)
+  color: #fff
 }
 
 .brand-sub {
   font-size: 13px;
-  color: var(--sea)
+  color: var(--panel)
 }
 
 .actions {
@@ -156,6 +157,16 @@ button:active {
 .secundario:hover {
   background: var(--sea-weak);
   border-color: var(--sea)
+}
+
+button.danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff
+}
+
+button.danger:hover {
+  background: #b91c1c
 }
 
 /* Layout */
@@ -219,7 +230,7 @@ body.aside-collapsed .lista-relatorios {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px
+  gap: 10px;
 }
 
 #listaRelatorios li {
@@ -243,14 +254,14 @@ body.aside-collapsed .lista-relatorios {
   margin-top: 4px
 }
 
-/* Form */
+/* Formulários */
 form fieldset {
   border: 1px solid var(--border);
   background: #fff;
   border-radius: 16px;
   padding: 16px;
   margin: 0 0 16px;
-  box-shadow: var(--shadow)
+  box-shadow: var(--shadow);
 }
 
 legend {
@@ -273,14 +284,6 @@ label {
   display: flex;
   flex-direction: column;
   gap: 6px
-}
-button.danger {
-  border-color: var(--danger);
-  background: var(--danger);
-  color: #fff;
-}
-button.danger:hover {
-  background: #b91c1c;
 }
 
 .grid {
@@ -338,33 +341,7 @@ select:focus {
   margin-bottom: 8px
 }
 
-/* Métodos */
-.metodos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 10px
-}
-
-.metodos label {
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #fff
-}
-
-.metodos label:hover {
-  border-color: #FFD1D3
-}
-
-.metodos input[type="checkbox"] {
-  width: 18px;
-  height: 18px
-}
-
-/* Tabela */
+/* Tabelas / Grade */
 .tabela-wrap {
   width: 100%;
   overflow: auto
@@ -377,7 +354,7 @@ select:focus {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: var(--shadow)
+  box-shadow: var(--shadow);
 }
 
 .tabela thead th {
@@ -389,7 +366,7 @@ select:focus {
   background: var(--sea-weak);
   border-bottom: 1px solid var(--border);
   color: var(--sea);
-  font-weight: 800
+  font-weight: 800;
 }
 
 .tabela tbody tr:nth-child(even) td {
@@ -406,23 +383,56 @@ select:focus {
   border-bottom: none
 }
 
-/* Footer */
+/* Botões mini (Ações da grade) */
+.btn-mini {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  transition: background .15s ease, transform .05s ease;
+}
+
+.btn-mini:hover {
+  background: var(--sea-weak)
+}
+
+.btn-mini.danger {
+  border-color: var(--danger);
+  color: #fff;
+  background: var(--danger)
+}
+
+.btn-mini.danger:hover {
+  background: #b91c1c
+}
+
+/* Rodapé */
 .rodape {
   padding: 16px;
   border-top: 1px solid var(--border);
   background: #fff;
   text-align: center;
-  color: var(--muted)
+  color: var(--muted);
+}
+
+/* VLibras sempre visível por cima */
+[vw],
+[vw] *,
+[vw-plugin-wrapper] {
+  z-index: 2147483647 !important
 }
 
 /* Responsividade */
-@media (max-width: 980px) {
+@media (max-width:980px) {
   .combo-grid {
     grid-template-columns: 1fr
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width:860px) {
   .layout {
     grid-template-columns: 1fr
   }
@@ -432,23 +442,13 @@ select:focus {
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width:520px) {
   .brand-text {
     display: none
   }
-
-  /* foca na logo */
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-    scroll-behavior: auto !important
-  }
-}
-
-/* Impressão */
+/* Impressão: esconder elementos de UI/CRUD e limpar cores */
 @media print {
 
   .topbar,
@@ -460,6 +460,21 @@ select:focus {
   .import,
   #btnImprimir {
     display: none !important
+  }
+
+  /* Esconde todo o CRUD de métodos (fieldset 4 em grade) */
+  #tblMetodos,
+  #btnAddMetodo,
+  #btnLimparMetodo,
+  #metMetodo,
+  #metNorma,
+  #metEquip,
+  #metMateriais,
+  #metProced,
+  #metCriterio,
+  #metUnidade,
+  #metAplicado {
+    display: none !important;
   }
 
   body {

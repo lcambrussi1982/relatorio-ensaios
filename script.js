@@ -1,8 +1,9 @@
+
 /* =========================
    Paleta p/ PDF e UI
    ========================= */
 const THEME = {
-  brand: "#E1262D",   // vermelho Chiva
+  brand: "#E1262D",   // vermelho Shiva
   brandWeak: "#E6F7FF",
   ink: "#0F1E3D",
   muted: "#5C6B84",
@@ -12,7 +13,7 @@ const THEME = {
   danger: "#E11D48",
 };
 
-/* ======= Normas (combo) ======= */
+/* ======= Normas (combo) – opções iniciais ======= */
 const NORMAS_OPCOES = [
   "ABNT NBR 5648:2018",
   "ABNT NBR 8219",
@@ -24,45 +25,91 @@ const NORMAS_OPCOES = [
   "ABNT NBR 7371",
 ];
 
-/* ======= Ensaios ======= */
-const ENSAIOS_DEFAULT = [
-  { ensaio: "Efeito sobre a água (Inocuidade)", norma: "ABNT NBR 8219" },
-  { ensaio: "Temperatura de amolecimento Vicat", norma: "ABNT NBR NM 82" },
-  { ensaio: "Presença de chumbo", norma: "EN 62321-3-1:2014" },
-  { ensaio: "Teor de cinzas", norma: "ABNT NBR NM 84" },
-  { ensaio: "Resistência à pressão hidrostática interna", norma: "ABNT NBR 8218" },
-  { ensaio: "Características geométricas", norma: "ABNT NBR 14264" },
-  { ensaio: "Desempenho da junta soldável", norma: "ABNT NBR 7371" },
-];
+const STORAGE_KEY = "relatorios-ensaio-v4";
 
-const STORAGE_KEY = "relatorios-ensaio-v3";
-
-/* ======= Helpers ======= */
+/* =========================
+   Helpers DOM / Utils
+   ========================= */
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
 const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
-const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
-const el  = (t,c,h)=>{ const e=document.createElement(t); if(c) e.className=c; if(h!=null) e.innerHTML=h; return e; };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : (Date.now()+Math.random()).toString(36));
+const el  = (t, attrs={}, html) => {
+  const e = document.createElement(t);
+  Object.entries(attrs||{}).forEach(([k,v]) => (k in e) ? (e[k]=v) : e.setAttribute(k,v));
+  if (html != null) e.innerHTML = html;
+  return e;
+};
 const splitList = s => (s||"").split(";").map(x=>x.trim()).filter(Boolean);
 const sanitizeFileName = s => (s||"ensaio").replace(/[^\p{L}\p{N}\-_.]+/gu,"-").replace(/-+/g,"-").replace(/(^-|-$)/g,"");
 
-/* ======= Estado ======= */
+/* =========================
+   Microanimações (WAAPI)
+   ========================= */
+const Anim = {
+  fadeIn(elm, dur=180, y=6){ elm.animate([
+      {opacity:0, transform:`translateY(${y}px)`},
+      {opacity:1, transform:"translateY(0)"}
+    ], {duration:dur, easing:"ease-out"}); },
+  fadeOut(elm, dur=150, y=6){ return elm.animate([
+      {opacity:1, transform:"translateY(0)"},
+      {opacity:0, transform:`translateY(${y}px)`}
+    ], {duration:dur, easing:"ease-in", fill:"forwards"}).finished; },
+  flash(elm){ elm.animate([
+      {transform:"scale(1)", boxShadow:"none"},
+      {transform:"scale(1.01)"},
+      {transform:"scale(1)", boxShadow:"none"}
+    ],{duration:260, easing:"ease-out"}); },
+  pulse(elm){ elm.animate([
+      {transform:"scale(1)"},
+      {transform:"scale(1.03)"},
+      {transform:"scale(1)"}
+    ],{duration:280, easing:"ease-out"}); },
+};
+
+/* =========================
+   Toast acessível (aria-live)
+   ========================= */
+function toast(msg, type="info"){
+  const live = $("#ariaLive");
+  if(!live) return alert(msg);
+  const pill = el("div", {className:"toast", role:"status"});
+  pill.style.cssText = `
+    position:fixed; right:16px; bottom:16px; z-index:99999;
+    background:${type==="error"?THEME.danger:(type==="success"?THEME.success:THEME.sea)};
+    color:#fff; padding:10px 12px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,.12);
+    font: 600 13px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;`;
+  pill.textContent = msg;
+  document.body.appendChild(pill);
+  Anim.fadeIn(pill,180,4);
+  setTimeout(()=> Anim.fadeOut(pill,180,4).then(()=>pill.remove()), 2200);
+  live.textContent = msg; // leitura por leitores de tela
+}
+
+/* =========================
+   Estado geral
+   ========================= */
 let relatorios = loadAll();
 let atual = novoRelatorio();
 
-/* ======= Init ======= */
+/* =========================
+   Init
+   ========================= */
 document.addEventListener("DOMContentLoaded", () => {
   $("#ano").textContent = new Date().getFullYear();
 
   montarNormasSelect();
-  montarMetodos();
   preencherForm(atual);
   desenharLista();
 
   // layout
-  $("#btnToggleAside")?.addEventListener("click", ()=>document.body.classList.toggle("aside-collapsed"));
+  $("#btnToggleAside")?.addEventListener("click", ()=>{
+    document.body.classList.toggle("aside-collapsed");
+    toast(document.body.classList.contains("aside-collapsed")?"Lista oculta":"Lista visível");
+  });
 
   // normas
   $("#btnAddNorma")?.addEventListener("click", addNormaCustom);
+  $("#btnDelNorma")?.addEventListener("click", delNormasSelecionadas);
 
   // itens dinâmicos
   $("#btnAddAmostra")?.addEventListener("click", addAmostra);
@@ -71,7 +118,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#btnAddTabela")?.addEventListener("click", addTabela);
 
   // ações principais
-  $("#btnNovo").addEventListener("click", ()=>{ atual = novoRelatorio(); preencherForm(atual); });
+  $("#btnNovo").addEventListener("click", ()=>{
+    atual = novoRelatorio();
+    preencherForm(atual);
+    toast("Relatório novo criado", "success");
+  });
   $("#btnSalvar").addEventListener("click", salvarAtual);
   $("#btnExportar").addEventListener("click", exportarJSON);
   $("#inputImportar").addEventListener("change", importarJSON);
@@ -83,9 +134,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // filtro da lista
   $("#filtroLista").addEventListener("input", desenharLista);
+
+  // Métodos: CRUD em GRID (fieldset 4)
+  initMetodosGrid();
 });
 
-/* ======= Modelo ======= */
+/* =========================
+   Modelo
+   ========================= */
 function novoRelatorio(){
   return {
     id: uid(),
@@ -97,7 +153,9 @@ function novoRelatorio(){
     normasReferencia: [],              // multi-select
     amostras: [novaAmostra()],
     objetivo: "",
-    metodos: ENSAIOS_DEFAULT.map(m=>({...m, aplicado:false})),
+    // GRID de Métodos (fieldset 4):
+    // {id, metodo, norma, equip, materiais, proced, criterio, unidade, aplicado}
+    metodos: [],
     resultados: [],
     discussao: "",
     conclusao: { status:"Conforme", observacoes:"" },
@@ -107,23 +165,35 @@ function novoRelatorio(){
     updatedAt: Date.now(),
   };
 }
-function novaAmostra(){ return { descricao:"", tipo:"", dimensao:"", cor:"", processo:"", marca:"", lote:"", quantidade:"" }; }
-function loadAll(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] } }
-function persistAll(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(relatorios)); }
+function novaAmostra(){
+  return { descricao:"", tipo:"", dimensao:"", cor:"", processo:"", marca:"", lote:"", quantidade:"" };
+}
+function loadAll(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] }
+}
+function persistAll(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(relatorios));
+}
 function salvarAtual(){
   if(!$("#formRelatorio").reportValidity()) return;
-  const data=coletarForm(); data.updatedAt=Date.now();
-  const ix=relatorios.findIndex(r=>r.id===data.id);
+  const data = coletarForm();
+  data.updatedAt = Date.now();
+  const ix = relatorios.findIndex(r=>r.id===data.id);
   if(ix>=0) relatorios[ix]=data; else relatorios.unshift(data);
-  persistAll(); desenharLista(); alert("Relatório salvo!");
+  persistAll();
+  desenharLista();
+  toast("Relatório salvo!", "success");
 }
 
-/* ======= Normas: combo ======= */
+/* =========================
+   Normas: combo
+   ========================= */
 function montarNormasSelect(){
   const sel = $("#normasSelect");
   sel.innerHTML = "";
   NORMAS_OPCOES.forEach(n=>{
-    const opt = el("option","",n); opt.value = n; sel.appendChild(opt);
+    const opt = el("option",{value:n},n);
+    sel.appendChild(opt);
   });
 }
 function setNormasSelecionadas(valores=[]){
@@ -140,15 +210,36 @@ function addNormaCustom(){
   const sel = $("#normasSelect");
   let opt = Array.from(sel.options).find(o=>o.value.toLowerCase()===valor.toLowerCase());
   if(!opt){
-    opt = document.createElement("option");
-    opt.value = valor; opt.textContent = valor;
+    opt = el("option",{value:valor},valor);
     sel.appendChild(opt);
+    Anim.flash(sel);
   }
-  opt.selected = true;   // já marca selecionada
+  opt.selected = true;
   inp.value = "";
+  toast("Norma adicionada/selecionada", "success");
+}
+function delNormasSelecionadas(){
+  const sel = $("#normasSelect");
+  const selecionados = Array.from(sel.selectedOptions);
+  if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
+
+  const nomes = selecionados.map(o=>o.text).join("\n- ");
+  const ok = confirm(`Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`);
+  if(!ok) return;
+
+  // animação de saída e remoção
+  (async ()=>{
+    for(const opt of selecionados){
+      await Anim.fadeOut(opt,120,2);
+      opt.remove();
+    }
+    toast("Normas removidas");
+  })();
 }
 
-/* ======= Form <-> Estado ======= */
+/* =========================
+   Form <-> Estado
+   ========================= */
 function preencherForm(r){
   const f=$("#formRelatorio");
   f.numeroRelatorio.value=r.numeroRelatorio||"";
@@ -167,20 +258,40 @@ function preencherForm(r){
   f.id.value=r.id;
 
   // Amostras
-  $("#amostras").innerHTML=""; (r.amostras||[]).forEach((a,i)=>$("#amostras").appendChild(amostraCard(a,i)));
+  $("#amostras").innerHTML="";
+  (r.amostras||[]).forEach((a,i)=>{
+    const card = amostraCard(a,i);
+    $("#amostras").appendChild(card);
+    Anim.fadeIn(card,140,6);
+  });
 
-  // Métodos
-  montarMetodos(r.metodos);
+  // MÉTODOS (GRID)
+  MetGrid.state = Array.isArray(r.metodos) ? structuredClone(r.metodos) : [];
+  MetGrid.render();
 
   // Resultados
   $("#tblResultados tbody").innerHTML="";
-  (r.resultados||[]).forEach(row=>$("#tblResultados tbody").appendChild(resultadoRow(row)));
+  (r.resultados||[]).forEach(row=>{
+    const tr = resultadoRow(row);
+    $("#tblResultados tbody").appendChild(tr);
+    Anim.fadeIn(tr,120,4);
+  });
 
   // Imagens
-  $("#imagens").innerHTML=""; (r.imagens||[]).forEach(img=>$("#imagens").appendChild(imagemCard(img)));
+  $("#imagens").innerHTML="";
+  (r.imagens||[]).forEach(img=>{
+    const card = imagemCard(img);
+    $("#imagens").appendChild(card);
+    Anim.fadeIn(card,120,4);
+  });
 
   // Tabelas extras
-  $("#tabelasExtras").innerHTML=""; (r.tabelasExtras||[]).forEach(tbl=>$("#tabelasExtras").appendChild(tabelaCard(tbl)));
+  $("#tabelasExtras").innerHTML="";
+  (r.tabelasExtras||[]).forEach(tbl=>{
+    const t = tabelaCard(tbl);
+    $("#tabelasExtras").appendChild(t);
+    Anim.fadeIn(t,120,4);
+  });
 }
 
 function coletarForm(){
@@ -206,15 +317,20 @@ function coletarForm(){
     })),
 
     objetivo:f.objetivo.value.trim(),
-    metodos:$$("#metodos .metodo").map((m,i)=>({...ENSAIOS_DEFAULT[i], aplicado:$("input",m).checked})),
+
+    // Métodos do GRID (estado em memória)
+    metodos: structuredClone(MetGrid.state),
+
     resultados:$$("#tblResultados tbody tr").map(tr=>({
       ensaio:$(".r-ensaio",tr).value.trim(),
       resultado:$(".r-resultado",tr).value.trim(),
       requisito:$(".r-requisito",tr).value.trim(),
       conformidade:$(".r-conf",tr).value
     })),
+
     discussao:f.discussao.value.trim(),
     conclusao:{ status:f.statusConclusao.value, observacoes:f.conclusaoObs.value.trim() },
+
     anexos:{
       certificados:splitList(f.anexosCertificados.value),
       planilhas:splitList(f.anexosPlanilhas.value),
@@ -239,18 +355,11 @@ function coletarForm(){
   };
 }
 
-/* ======= UI builders ======= */
-function montarMetodos(existing=[]){
-  const wrap=$("#metodos"); wrap.innerHTML="";
-  ENSAIOS_DEFAULT.forEach((m,i)=>{
-    const lab=el("label","metodo",`<input type="checkbox"><span><strong>${m.ensaio}</strong> — <em>${m.norma}</em></span>`);
-    const chk = $("input",lab);
-    chk.checked = !!existing[i]?.aplicado;
-    wrap.appendChild(lab);
-  });
-}
+/* =========================
+   Amostras
+   ========================= */
 function amostraCard(a={},idx=0){
-  const d=el("div","grid"); d.dataset.amostra=idx;
+  const d=el("div",{className:"grid"}); d.dataset.amostra=idx;
   d.innerHTML=`<label>Descrição <input class="a-descricao" value="${a.descricao||""}" required></label>
   <label>Tipo <input class="a-tipo" value="${a.tipo||""}"></label>
   <label>Dimensão nominal <input class="a-dimensao" value="${a.dimensao||""}"></label>
@@ -260,25 +369,45 @@ function amostraCard(a={},idx=0){
   <label>Lote/Nº amostra <input class="a-lote" value="${a.lote||""}"></label>
   <label>Qtd. <input class="a-quantidade" value="${a.quantidade||""}" type="number" min="0"></label>
   <div><button type="button" class="secundario" data-remove>Remover</button></div>`;
-  $("button[data-remove]",d).addEventListener("click",()=>d.remove());
+  $("button[data-remove]",d).addEventListener("click", async ()=>{
+    await Anim.fadeOut(d,150,6); d.remove(); toast("Amostra removida");
+  });
   return d;
 }
+function addAmostra(){
+  const card = amostraCard(novaAmostra());
+  $("#amostras").appendChild(card);
+  Anim.fadeIn(card,160,8);
+}
+
+/* =========================
+   Resultados
+   ========================= */
 function resultadoRow(r={}){
-  const tr=el("tr","");
+  const tr=el("tr");
   tr.innerHTML=`<td><input class="r-ensaio" value="${r.ensaio||""}" placeholder="Ensaio"></td>
   <td><input class="r-resultado" value="${r.resultado||""}" placeholder="Resultado"></td>
   <td><input class="r-requisito" value="${r.requisito||""}" placeholder="Requisito"></td>
   <td><select class="r-conf"><option ${r.conformidade==="Conforme"?"selected":""}>Conforme</option><option ${r.conformidade==="Não conforme"?"selected":""}>Não conforme</option></select></td>
   <td><button type="button" class="secundario del">Excluir</button></td>`;
-  $(".del",tr).addEventListener("click",()=>tr.remove());
+  $(".del",tr).addEventListener("click", async ()=>{
+    const ok = confirm("Excluir esta linha de resultado?");
+    if(!ok) return;
+    await Anim.fadeOut(tr,130,4); tr.remove();
+  });
   return tr;
 }
-function addAmostra(){ $("#amostras").appendChild(amostraCard(novaAmostra())); }
-function addResultado(){ $("#tblResultados tbody").appendChild(resultadoRow({})); }
+function addResultado(){
+  const tr = resultadoRow({});
+  $("#tblResultados tbody").appendChild(tr);
+  Anim.fadeIn(tr,140,6);
+}
 
-/* ======= Imagens ======= */
+/* =========================
+   Imagens
+   ========================= */
 function imagemCard(obj={src:"",alt:"",legenda:""}){
-  const div=el("div","grid"); div.dataset.img="1";
+  const div=el("div",{className:"grid"}); div.dataset.img="1";
   div.innerHTML=`
     <label>Imagem (URL ou selecione arquivo)
       <input class="img-url" type="url" value="${obj.src||""}" placeholder="https://..." />
@@ -287,20 +416,30 @@ function imagemCard(obj={src:"",alt:"",legenda:""}){
     <label>Legenda <input class="img-cap" value="${obj.legenda||""}" placeholder="Ex.: Foto da amostra A"/></label>
     <label>Texto alternativo (acessibilidade) <input class="img-alt" value="${obj.alt||""}" placeholder="Descrição breve"/></label>
     <div><button type="button" class="secundario" data-remove>Remover imagem</button></div>`;
-  $("button[data-remove]",div).addEventListener("click",()=>div.remove());
+  $("button[data-remove]",div).addEventListener("click", async ()=>{
+    const ok = confirm("Remover esta imagem?");
+    if(!ok) return;
+    await Anim.fadeOut(div,130,4); div.remove();
+  });
   $(".img-file",div).addEventListener("change", e=>{
     const file=e.target.files?.[0]; if(!file) return;
     const reader=new FileReader();
-    reader.onload=()=>{ $(".img-url",div).value=reader.result; };
+    reader.onload=()=>{ $(".img-url",div).value=reader.result; Anim.pulse($(".img-url",div)); toast("Imagem carregada","success"); };
     reader.readAsDataURL(file);
   });
   return div;
 }
-function addImagem(){ $("#imagens").appendChild(imagemCard()); }
+function addImagem(){
+  const card = imagemCard();
+  $("#imagens").appendChild(card);
+  Anim.fadeIn(card,140,6);
+}
 
-/* ======= Tabelas Extras ======= */
+/* =========================
+   Tabelas Extras
+   ========================= */
 function tabelaCard(data={titulo:"",linhas:[["",""]]}){
-  const div=el("div","extra-table"); div.dataset.tabela="1";
+  const div=el("div",{className:"extra-table"}); div.dataset.tabela="1";
   let html=`
     <div class="grid">
       <label>Título da tabela
@@ -321,13 +460,24 @@ function tabelaCard(data={titulo:"",linhas:[["",""]]}){
     const tr=document.createElement("tr");
     tr.innerHTML=`<td contenteditable="true"></td><td contenteditable="true"></td>`;
     $("tbody",div).appendChild(tr);
+    Anim.fadeIn(tr,120,4);
   });
-  $("button[data-remove]",div).addEventListener("click",()=>div.remove());
+  $("button[data-remove]",div).addEventListener("click", async ()=>{
+    const ok = confirm("Remover esta tabela?");
+    if(!ok) return;
+    await Anim.fadeOut(div,130,4); div.remove();
+  });
   return div;
 }
-function addTabela(){ $("#tabelasExtras").appendChild(tabelaCard({})); }
+function addTabela(){
+  const t = tabelaCard({});
+  $("#tabelasExtras").appendChild(t);
+  Anim.fadeIn(t,140,6);
+}
 
-/* ======= Lista lateral ======= */
+/* =========================
+   Lista lateral (salvos)
+   ========================= */
 function desenharLista(){
   const termo=($("#filtroLista").value||"").toLowerCase();
   const ul=$("#listaRelatorios"); ul.innerHTML="";
@@ -335,18 +485,31 @@ function desenharLista(){
     .filter(r=>[r.numeroRelatorio,r.responsavelTecnico,r.laboratorio].join(" ").toLowerCase().includes(termo))
     .sort((a,b)=>b.updatedAt-a.updatedAt)
     .forEach(r=>{
-      const li=el("li","");
+      const li=el("li");
       li.innerHTML=`<strong>${r.numeroRelatorio||"(sem nº)"} – ${r.responsavelTecnico||"?"}</strong>
         <span class="meta">${new Date(r.updatedAt).toLocaleString()} • ${r.laboratorio||""}</span>
-        <div class="row-actions"><button data-open>Abrir</button><button data-delete class="del">Apagar</button></div>`;
-      $("button[data-open]",li).addEventListener("click",()=>{atual=r;preencherForm(atual);});
-      $("button[data-delete]",li).addEventListener("click",()=>{if(confirm("Apagar?")){relatorios=relatorios.filter(x=>x.id!==r.id);persistAll();desenharLista();}});
+        <div class="row-actions">
+          <button data-open class="secundario">Abrir</button>
+          <button data-delete class="danger">Apagar</button>
+        </div>`;
+      $("button[data-open]",li).addEventListener("click",()=>{
+        atual=r; preencherForm(atual); toast("Relatório carregado");
+      });
+      $("button[data-delete]",li).addEventListener("click", async ()=>{
+        if(!confirm("Apagar este relatório?")) return;
+        await Anim.fadeOut(li,130,4);
+        relatorios=relatorios.filter(x=>x.id!==r.id);
+        persistAll(); desenharLista(); toast("Relatório apagado");
+      });
       ul.appendChild(li);
+      Anim.fadeIn(li,120,4);
     });
-  if(!ul.children.length){ const li=el("li",""); li.textContent="Nenhum relatório salvo."; ul.appendChild(li); }
+  if(!ul.children.length){ const li=el("li"); li.textContent="Nenhum relatório salvo."; ul.appendChild(li); }
 }
 
-/* ======= Exportar / Importar ======= */
+/* =========================
+   Exportar / Importar
+   ========================= */
 function exportarJSON(){
   const data=coletarForm();
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
@@ -354,18 +517,23 @@ function exportarJSON(){
   a.href=URL.createObjectURL(blob);
   a.download=`relatorio-${sanitizeFileName(data.numeroRelatorio)||"ensaio"}.json`;
   a.click(); URL.revokeObjectURL(a.href);
+  toast("JSON exportado","success");
 }
 function importarJSON(ev){
   const f=ev.target.files?.[0]; if(!f) return;
   const reader=new FileReader();
   reader.onload=()=>{ try{
-    const data=JSON.parse(reader.result); atual={...novoRelatorio(),...data};
+    const data=JSON.parse(reader.result);
+    atual={...novoRelatorio(),...data};
     montarNormasSelect(); preencherForm(atual); salvarAtual();
-  }catch{ alert("Arquivo inválido."); } ev.target.value=""; };
+    toast("JSON importado","success");
+  }catch{ toast("Arquivo inválido.","error"); } ev.target.value=""; };
   reader.readAsText(f);
 }
 
-/* ======= Util p/ PDF: carregar imagem (URL -> dataURL) ======= */
+/* =========================
+   Util p/ PDF: carregar imagem (URL -> dataURL)
+   ========================= */
 function loadImageAsDataURL(url){
   return new Promise((resolve, reject) => {
     if (/^data:image\//i.test(url)) return resolve(url); // já é base64
@@ -385,7 +553,9 @@ function loadImageAsDataURL(url){
   });
 }
 
-/* ======= PDF (texto) com imagens/tabelas extras ======= */
+/* =========================
+   PDF (texto) – com métodos do GRID
+   ========================= */
 async function gerarPDF(){
   const {jsPDF}=window.jspdf;
   const r=coletarForm();
@@ -454,8 +624,27 @@ async function gerarPDF(){
   paragraph(r.objetivo);
 
   title("4. Métodos e Materiais Empregados");
-  const ativos = (r.metodos||[]).filter(m=>m.aplicado).map(m=>`${m.ensaio} — ${m.norma}`);
-  paragraph(ativos.length ? ativos.join("\n") : "Nenhum método marcado.");
+  const ativos = (r.metodos||[]).filter(m=>m.aplicado);
+  if (!ativos.length) {
+    paragraph("Nenhum método marcado como aplicado.");
+  } else {
+    ativos.forEach((m, idx) => {
+      ensureSpace(60);
+      doc.setFont("helvetica","bold"); doc.setTextColor(THEME.ink);
+      doc.text(`• ${m.metodo || "-"}`, MARGIN_X, y); y += 12;
+      doc.setFont("helvetica","normal");
+      const linhas = [
+        m.norma     && `Norma/Ref.: ${m.norma}`,
+        m.equip     && `Equipamento: ${m.equip}`,
+        m.materiais && `Materiais: ${m.materiais}`,
+        m.proced    && `Procedimento: ${m.proced}`,
+        m.criterio  && `Critério/Requisito: ${m.criterio}`,
+        m.unidade   && `Unidade: ${m.unidade}`,
+      ].filter(Boolean).join("\n");
+      paragraph(linhas || "-");
+      y += 2;
+    });
+  }
 
   title("5. Resultados dos Ensaios");
   const rows = r.resultados || [];
@@ -559,7 +748,9 @@ async function gerarPDF(){
   doc.save(`relatorio-${sanitizeFileName(r.numeroRelatorio)||"ensaio"}.pdf`);
 }
 
-/* ======= PDF (layout HTML) ======= */
+/* =========================
+   PDF (layout HTML)
+   ========================= */
 function gerarPDFhtml(){
   const relatorio=$("#formRelatorio");
   html2pdf().set({
@@ -570,23 +761,162 @@ function gerarPDFhtml(){
     jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
   }).from(relatorio).save();
 }
-// Excluir normas selecionadas (com confirmação)
-document.getElementById("btnDelNorma").addEventListener("click", () => {
-  const select = document.getElementById("normasSelect");
-  const selecionados = Array.from(select.selectedOptions);
 
-  if (selecionados.length === 0) {
-    alert("Selecione pelo menos uma norma para excluir.");
-    return;
+/* ===========================================================
+   MÉTODOS – GRID (fieldset 4) – CRUD com animações
+   =========================================================== */
+const MetGrid = {
+  state: [],      // [{id,metodo,norma,equip,materiais,proced,criterio,unidade,aplicado}]
+  editId: null,
+  inputs: {
+    metodo:    "#metMetodo",
+    norma:     "#metNorma",
+    equip:     "#metEquip",
+    materiais: "#metMateriais",
+    proced:    "#metProced",
+    criterio:  "#metCriterio",
+    unidade:   "#metUnidade",
+    aplicado:  "#metAplicado",
+  },
+  getVals(){
+    return {
+      metodo:    $(this.inputs.metodo).value.trim(),
+      norma:     $(this.inputs.norma).value.trim(),
+      equip:     $(this.inputs.equip).value.trim(),
+      materiais: $(this.inputs.materiais).value.trim(),
+      proced:    $(this.inputs.proced).value.trim(),
+      criterio:  $(this.inputs.criterio).value.trim(),
+      unidade:   $(this.inputs.unidade).value.trim(),
+      aplicado:  $(this.inputs.aplicado).checked,
+    };
+  },
+  setVals(v={}){
+    $(this.inputs.metodo).value     = v.metodo||"";
+    $(this.inputs.norma).value      = v.norma||"";
+    $(this.inputs.equip).value      = v.equip||"";
+    $(this.inputs.materiais).value  = v.materiais||"";
+    $(this.inputs.proced).value     = v.proced||"";
+    $(this.inputs.criterio).value   = v.criterio||"";
+    $(this.inputs.unidade).value    = v.unidade||"";
+    $(this.inputs.aplicado).checked = !!v.aplicado;
+  },
+  clear(){ this.setVals({}); this.editId=null; $("#btnAddMetodo").textContent="Incluir"; },
+  save(){
+    const v = this.getVals();
+    if(!v.metodo){ toast("Informe o campo ‘Método / Descrição’.","error"); return; }
+
+    if(this.editId){
+      const i = this.state.findIndex(m=>m.id===this.editId);
+      if(i>=0){
+        // impedir duplicata ao renomear
+        if (this.state.some((m,ix)=>ix!==i && m.metodo.toLowerCase()===v.metodo.toLowerCase())){
+          toast("Já existe um método com essa descrição.","error"); return;
+        }
+        const ok = confirm(`Confirmar alteração?\n\nDe:\n- ${this.state[i].metodo}\n\nPara:\n- ${v.metodo}`);
+        if(!ok) return;
+        this.state[i] = {...this.state[i], ...v};
+        this.render();
+        this.clear();
+        toast("Método alterado","success");
+      }
+    } else {
+      if (this.state.some(m=>m.metodo.toLowerCase()===v.metodo.toLowerCase())){
+        toast("Já existe um método com essa descrição.","error"); return;
+      }
+      this.state.push({id:uid(), ...v});
+      this.render(true);
+      this.clear();
+      toast("Método incluído","success");
+    }
+  },
+  edit(id){
+    const item = this.state.find(m=>m.id===id); if(!item) return;
+    this.setVals(item);
+    this.editId = id;
+    $("#btnAddMetodo").textContent = "Salvar alteração";
+    $(this.inputs.metodo).focus();
+    Anim.pulse($(this.inputs.metodo));
+  },
+  remove(id){
+    const item = this.state.find(m=>m.id===id); if(!item) return;
+    const ok = confirm(`Tem certeza que deseja excluir o método?\n\n- ${item.metodo}`);
+    if(!ok) return;
+    this.state = this.state.filter(m=>m.id!==id);
+    this.render();
+    toast("Método excluído");
+  },
+  toggleAplicado(id, checked){
+    const item = this.state.find(m=>m.id===id); if(!item) return;
+    item.aplicado = checked;
+  },
+  render(scrollToEnd=false){
+    const tbody = $("#tblMetodos tbody"); if(!tbody) return;
+    if(!this.state.length){
+      tbody.innerHTML = `<tr><td colspan="9" class="small">Nenhum método cadastrado. Use o formulário acima para incluir.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = this.state.map(m=>`
+      <tr data-id="${m.id}">
+        <td>${escapeHtml(m.metodo||"")}</td>
+        <td>${escapeHtml(m.norma||"")}</td>
+        <td>${escapeHtml(m.equip||"")}</td>
+        <td>${escapeHtml(m.materiais||"")}</td>
+        <td>${escapeHtml(m.proced||"")}</td>
+        <td>${escapeHtml(m.criterio||"")}</td>
+        <td>${escapeHtml(m.unidade||"")}</td>
+        <td>
+          <label class="inline">
+            <input type="checkbox" data-id="${m.id}" ${m.aplicado?"checked":""}/>
+            <span class="small">Aplic.</span>
+          </label>
+        </td>
+        <td>
+          <div class="inline" style="gap:8px">
+            <button type="button" class="btn-mini" data-action="edit" data-id="${m.id}">Alterar</button>
+            <button type="button" class="btn-mini danger" data-action="delete" data-id="${m.id}">Excluir</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    // micro anima em todas as linhas
+    $$("#tblMetodos tbody tr").forEach((tr,i)=> Anim.fadeIn(tr,100+(i*10),4));
+    if(scrollToEnd){ tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight; }
   }
+};
 
-  // Monta mensagem com as normas selecionadas
-  const nomes = selecionados.map(opt => opt.text).join("\n- ");
-  const confirmar = confirm(
-    `Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`
-  );
+function initMetodosGrid(){
+  const btnAdd = $("#btnAddMetodo");
+  const btnClr = $("#btnLimparMetodo");
+  const table  = $("#tblMetodos");
 
-  if (confirmar) {
-    selecionados.forEach(opt => opt.remove());
-  }
-});
+  btnAdd?.addEventListener("click", ()=> MetGrid.save());
+  btnClr?.addEventListener("click", ()=> MetGrid.clear());
+
+  table?.addEventListener("click", (ev)=>{
+    const btn = ev.target.closest("button[data-action]");
+    if(!btn) return;
+    const id = btn.getAttribute("data-id");
+    if(btn.dataset.action==="edit")   MetGrid.edit(id);
+    if(btn.dataset.action==="delete") MetGrid.remove(id);
+  });
+
+  table?.addEventListener("change", (ev)=>{
+    const cb = ev.target.closest('input[type="checkbox"][data-id]');
+    if(!cb) return;
+    MetGrid.toggleAplicado(cb.getAttribute("data-id"), cb.checked);
+  });
+}
+
+/* =========================
+   PDF (layout HTML) – já acima
+   ========================= */
+
+/* =========================
+   Utilidades diversas
+   ========================= */
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+  ));
+}
