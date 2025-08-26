@@ -570,3 +570,15 @@ function gerarPDFhtml(){
     jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
   }).from(relatorio).save();
 }
+// Excluir normas selecionadas
+document.getElementById("btnDelNorma").addEventListener("click", () => {
+  const select = document.getElementById("normasSelect");
+  const selecionados = Array.from(select.selectedOptions);
+
+  if (selecionados.length === 0) {
+    alert("Selecione pelo menos uma norma para excluir.");
+    return;
+  }
+
+  selecionados.forEach(opt => opt.remove());
+});

@@ -274,6 +274,14 @@ label {
   flex-direction: column;
   gap: 6px
 }
+button.danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+button.danger:hover {
+  background: #b91c1c;
+}
 
 .grid {
   display: grid;

@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-br">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,12 +8,14 @@
 
   <!-- Bibliotecas para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+    crossorigin="anonymous"></script>
 
   <link rel="stylesheet" href="style.css" />
   <meta name="color-scheme" content="light only">
   <meta name="theme-color" content="#E1262D">
 </head>
+
 <body>
   <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
 
@@ -78,17 +81,28 @@
             </label>
           </div>
 
+
+
+
+
           <!-- Combo de Normas de Referência -->
           <div class="combo">
             <label for="normasSelect">Normas de referência (selecione 1+)</label>
             <div class="combo-grid">
               <select id="normasSelect" multiple size="6" aria-describedby="normaHelp"></select>
               <div class="addbox">
-                <label for="novaNorma" class="small">Adicionar nova norma</label>
+                <label for="novaNorma" class="small">Gerenciar normas</label>
                 <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
-                <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
-                <p id="normaHelp" class="hint">Use Ctrl/Cmd para selecionar múltiplas normas. Você pode incluir novas normas pelo campo ao lado.</p>
+                <div class="inline">
+                  <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
+                  <button type="button" id="btnDelNorma" class="secundario danger">Excluir selecionada</button>
+                </div>
+                <p id="normaHelp" class="hint">
+                  Use Ctrl/Cmd para selecionar múltiplas normas.<br>
+                  Você pode incluir novas normas pelo campo ou excluir as selecionadas.
+                </p>
               </div>
+
             </div>
           </div>
         </fieldset>
@@ -103,7 +117,8 @@
         <!-- 3. Objetivo -->
         <fieldset>
           <legend>3. Objetivo do Ensaio</legend>
-          <textarea name="objetivo" rows="3" placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
+          <textarea name="objetivo" rows="3"
+            placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
         </fieldset>
 
         <!-- 4. Métodos -->
@@ -137,7 +152,8 @@
         <!-- 6. Discussão -->
         <fieldset>
           <legend>6. Discussão dos Resultados</legend>
-          <textarea name="discussao" rows="4" placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
+          <textarea name="discussao" rows="4"
+            placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
         </fieldset>
 
         <!-- 7. Conclusão -->
@@ -147,7 +163,8 @@
             <label class="inline"><input type="radio" name="statusConclusao" value="Conforme" checked />Conforme</label>
             <label class="inline"><input type="radio" name="statusConclusao" value="Não conforme" />Não conforme</label>
           </div>
-          <textarea name="conclusaoObs" rows="3" placeholder="Observações complementares e referências à norma."></textarea>
+          <textarea name="conclusaoObs" rows="3"
+            placeholder="Observações complementares e referências à norma."></textarea>
         </fieldset>
 
         <!-- 8. Anexos -->
@@ -190,29 +207,32 @@
     <small>© <span id="ano"></span> Shiva Plásticos — Relatórios digitais.</small>
   </footer>
 
-<!-- VLibras -->
-<div vw class="enabled">
-  <div vw-access-button class="active"></div>
-  <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
-</div>
-<script>
-  (function initVLibras() {
-    function start() {
-      try { new window.VLibras.Widget('https://vlibras.gov.br/app'); }
-      catch (e) { console.error('VLibras init erro:', e); }
-    }
-    if (window.VLibras && window.VLibras.Widget) { start(); }
-    else {
-      var s = document.createElement('script');
-      s.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
-      s.defer = true;
-      s.onload = start;
-      document.head.appendChild(s);
-    }
-  })();
-</script>
+  <!-- VLibras -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script>
+    (function initVLibras() {
+      function start() {
+        try { new window.VLibras.Widget('https://vlibras.gov.br/app'); }
+        catch (e) { console.error('VLibras init erro:', e); }
+      }
+      if (window.VLibras && window.VLibras.Widget) { start(); }
+      else {
+        var s = document.createElement('script');
+        s.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
+        s.defer = true;
+        s.onload = start;
+        document.head.appendChild(s);
+      }
+    })();
+  </script>
 
 
   <script src="script.js" defer></script>
 </body>
+
 </html>
