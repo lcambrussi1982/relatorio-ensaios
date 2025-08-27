@@ -1,25 +1,16 @@
 :root {
   /* Paleta Chiva (60-30-10) */
   --bg: #FAFBFF;
-  /* base clara */
   --panel: #DFF3FF;
-  /* azul-claro */
   --card: #FFFFFF;
-  /* cartões */
   --ink: #0F1E3D;
-  /* texto principal (azul marinho) */
   --muted: #5C6B84;
-  /* texto secundário */
   --border: #E2E8F0;
-  /* bordas */
 
   --brand: #E1262D;
-  /* vermelho Chiva */
   --brand-hover: #C81F25;
   --sea: #0077B6;
-  /* azul da onda */
   --sea-weak: #E6F7FF;
-  /* azul leve */
 
   --success: #22C55E;
   --danger: #E11D48;
@@ -83,7 +74,6 @@ body {
   gap: 16px;
   padding: 10px 18px;
   background: #0F1E3D;
-  /* azul marinho do tema */
   border-bottom: 2px solid var(--brand);
   box-shadow: var(--shadow);
 }
@@ -462,7 +452,6 @@ select:focus {
     display: none !important
   }
 
-  /* Esconde todo o CRUD de métodos (fieldset 4 em grade) */
   #tblMetodos,
   #btnAddMetodo,
   #btnLimparMetodo,
@@ -501,32 +490,52 @@ select:focus {
   }
 }
 
-
 /* ===== Auth screen ===== */
-.auth-screen{
-  position: fixed; inset: 0;
-  display: grid; place-items: center;
-  background: linear-gradient(180deg, var(--panel) 0, rgba(255,255,255,.95) 260px);
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, var(--panel) 0, rgba(255, 255, 255, .95) 260px);
   z-index: 50;
 }
-.auth-card{
+
+.auth-card {
   width: min(440px, 92vw);
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 18px;
   box-shadow: var(--shadow);
-  display: grid; gap: 12px;
+  display: grid;
+  gap: 12px;
 }
-.auth-card h1{ margin: 0 0 6px; }
-.auth-card button{ width: max-content; }
 
-.userbox{ display:flex; align-items:center; gap:8px; }
-.whoami{ color:#fff; font-weight:700; }
+.auth-card h1 {
+  margin: 0 0 6px;
+}
+
+.auth-card button {
+  width: max-content;
+}
+
+.userbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.whoami {
+  color: #fff;
+  font-weight: 700;
+}
 
 /* ===== Dialog base ===== */
-.dlg::backdrop{ background: rgba(0,0,0,.35); }
-.dlg-card{
+.dlg::backdrop {
+  background: rgba(0, 0, 0, .35);
+}
+
+.dlg-card {
   width: min(920px, 96vw);
   background: var(--card);
   border: 1px solid var(--border);
@@ -534,10 +543,23 @@ select:focus {
   padding: 16px;
   box-shadow: var(--shadow);
 }
-.dlg-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.dlg-head h2{ margin:0; }
+
+.dlg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.dlg-head h2 {
+  margin: 0;
+}
 
 /* esconder UI quando não logado */
 body.locked .topbar,
 body.locked .layout,
-body.locked .rodape{ filter: blur(2px); pointer-events:none; user-select:none; }
+body.locked .rodape {
+  filter: blur(2px);
+  pointer-events: none;
+  user-select: none;
+}

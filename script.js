@@ -1,4 +1,3 @@
-
 /* =========================
    Paleta p/ PDF e UI
    ========================= */
@@ -94,9 +93,23 @@ let atual = novoRelatorio();
 /* =========================
    Init
    ========================= */
-document.addEventListener("DOMContentLoaded", () => {
-  $("#ano").textContent = new Date().getFullYear();
+document.addEventListener("DOMContentLoaded", async () => {
+  const anoEl = $("#ano"); if (anoEl) anoEl.textContent = new Date().getFullYear();
 
+  // --- AUTH: prepara e aplica estado de sessão ---
+  await ensureDefaultAdmin();
+  bindAuthEvents();
+
+  const sess = getSession();
+  if (sess) {
+    lockUI(false);
+    renderWhoAmI();
+  } else {
+    lockUI(true);
+  }
+  applyRolePermissions(); // aplica bloqueios iniciais
+
+  // --- APP UI ---
   montarNormasSelect();
   preencherForm(atual);
   desenharLista();
@@ -108,36 +121,43 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // normas
-  $("#btnAddNorma")?.addEventListener("click", addNormaCustom);
-  $("#btnDelNorma")?.addEventListener("click", delNormasSelecionadas);
+  $("#btnAddNorma")?.addEventListener("click", () => withEditPerm(addNormaCustom));
+  $("#btnDelNorma")?.addEventListener("click", () => withEditPerm(delNormasSelecionadas));
 
   // itens dinâmicos
-  $("#btnAddAmostra")?.addEventListener("click", addAmostra);
-  $("#btnAddResultado")?.addEventListener("click", addResultado);
-  $("#btnAddImagem")?.addEventListener("click", addImagem);
-  $("#btnAddTabela")?.addEventListener("click", addTabela);
+  $("#btnAddAmostra")?.addEventListener("click", () => withEditPerm(addAmostra));
+  $("#btnAddResultado")?.addEventListener("click", () => withEditPerm(addResultado));
+  $("#btnAddImagem")?.addEventListener("click", () => withEditPerm(addImagem));
+  $("#btnAddTabela")?.addEventListener("click", () => withEditPerm(addTabela));
 
   // ações principais
-  $("#btnNovo").addEventListener("click", ()=>{
+  $("#btnNovo")?.addEventListener("click", ()=> withEditPerm(()=>{
     atual = novoRelatorio();
     preencherForm(atual);
     toast("Relatório novo criado", "success");
-  });
-  $("#btnSalvar").addEventListener("click", salvarAtual);
-  $("#btnExportar").addEventListener("click", exportarJSON);
-  $("#inputImportar").addEventListener("change", importarJSON);
-  $("#btnImprimir").addEventListener("click", ()=>window.print());
+  }));
+  $("#btnSalvar")?.addEventListener("click", ()=> withEditPerm(salvarAtual));
+
+  $("#btnExportar")?.addEventListener("click", exportarJSON);
+  $("#inputImportar")?.addEventListener("change", (e)=> withEditPerm(()=>importarJSON(e)));
+  $("#btnImprimir")?.addEventListener("click", ()=>window.print());
 
   // PDFs
-  $("#btnPDF").addEventListener("click", gerarPDF);
-  $("#btnPDFhtml").addEventListener("click", gerarPDFhtml);
+  $("#btnPDF")?.addEventListener("click", gerarPDF);
+  $("#btnPDFhtml")?.addEventListener("click", gerarPDFhtml);
 
   // filtro da lista
-  $("#filtroLista").addEventListener("input", desenharLista);
+  $("#filtroLista")?.addEventListener("input", desenharLista);
 
   // Métodos: CRUD em GRID (fieldset 4)
   initMetodosGrid();
 });
+
+/* guard para ações de edição */
+function withEditPerm(fn){
+  if(!hasRole("admin","editor")){ toast("Sem permissão para editar (viewer).","error"); return; }
+  fn?.();
+}
 
 /* =========================
    Modelo
@@ -175,7 +195,8 @@ function persistAll(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(relatorios));
 }
 function salvarAtual(){
-  if(!$("#formRelatorio").reportValidity()) return;
+  const form = $("#formRelatorio");
+  if(form && !form.reportValidity()) return;
   const data = coletarForm();
   data.updatedAt = Date.now();
   const ix = relatorios.findIndex(r=>r.id===data.id);
@@ -190,6 +211,7 @@ function salvarAtual(){
    ========================= */
 function montarNormasSelect(){
   const sel = $("#normasSelect");
+  if(!sel) return;
   sel.innerHTML = "";
   NORMAS_OPCOES.forEach(n=>{
     const opt = el("option",{value:n},n);
@@ -197,17 +219,20 @@ function montarNormasSelect(){
   });
 }
 function setNormasSelecionadas(valores=[]){
-  const sel = $("#normasSelect"); const set = new Set(valores);
+  const sel = $("#normasSelect"); if(!sel) return;
+  const set = new Set(valores);
   $$("option", sel).forEach(o => o.selected = set.has(o.value));
 }
 function getNormasSelecionadas(){
-  return Array.from($("#normasSelect").selectedOptions).map(o=>o.value);
+  const sel = $("#normasSelect"); if(!sel) return [];
+  return Array.from(sel.selectedOptions).map(o=>o.value);
 }
 function addNormaCustom(){
   const inp = $("#novaNorma");
+  if(!inp) return;
   const valor = (inp.value||"").trim();
   if(!valor) return;
-  const sel = $("#normasSelect");
+  const sel = $("#normasSelect"); if(!sel) return;
   let opt = Array.from(sel.options).find(o=>o.value.toLowerCase()===valor.toLowerCase());
   if(!opt){
     opt = el("option",{value:valor},valor);
@@ -219,7 +244,7 @@ function addNormaCustom(){
   toast("Norma adicionada/selecionada", "success");
 }
 function delNormasSelecionadas(){
-  const sel = $("#normasSelect");
+  const sel = $("#normasSelect"); if(!sel) return;
   const selecionados = Array.from(sel.selectedOptions);
   if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
 
@@ -227,7 +252,6 @@ function delNormasSelecionadas(){
   const ok = confirm(`Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`);
   if(!ok) return;
 
-  // animação de saída e remoção
   (async ()=>{
     for(const opt of selecionados){
       await Anim.fadeOut(opt,120,2);
@@ -241,7 +265,7 @@ function delNormasSelecionadas(){
    Form <-> Estado
    ========================= */
 function preencherForm(r){
-  const f=$("#formRelatorio");
+  const f=$("#formRelatorio"); if(!f) return;
   f.numeroRelatorio.value=r.numeroRelatorio||"";
   f.revisao.value=r.revisao||"";
   f.dataEmissao.value=r.dataEmissao||"";
@@ -258,40 +282,55 @@ function preencherForm(r){
   f.id.value=r.id;
 
   // Amostras
-  $("#amostras").innerHTML="";
-  (r.amostras||[]).forEach((a,i)=>{
-    const card = amostraCard(a,i);
-    $("#amostras").appendChild(card);
-    Anim.fadeIn(card,140,6);
-  });
+  const amDiv = $("#amostras");
+  if(amDiv){
+    amDiv.innerHTML="";
+    (r.amostras||[]).forEach((a,i)=>{
+      const card = amostraCard(a,i);
+      amDiv.appendChild(card);
+      Anim.fadeIn(card,140,6);
+    });
+  }
 
   // MÉTODOS (GRID)
   MetGrid.state = Array.isArray(r.metodos) ? structuredClone(r.metodos) : [];
   MetGrid.render();
 
   // Resultados
-  $("#tblResultados tbody").innerHTML="";
-  (r.resultados||[]).forEach(row=>{
-    const tr = resultadoRow(row);
-    $("#tblResultados tbody").appendChild(tr);
-    Anim.fadeIn(tr,120,4);
-  });
+  const tbodyRes = $("#tblResultados tbody");
+  if(tbodyRes){
+    tbodyRes.innerHTML="";
+    (r.resultados||[]).forEach(row=>{
+      const tr = resultadoRow(row);
+      tbodyRes.appendChild(tr);
+      Anim.fadeIn(tr,120,4);
+    });
+  }
 
   // Imagens
-  $("#imagens").innerHTML="";
-  (r.imagens||[]).forEach(img=>{
-    const card = imagemCard(img);
-    $("#imagens").appendChild(card);
-    Anim.fadeIn(card,120,4);
-  });
+  const imgs = $("#imagens");
+  if(imgs){
+    imgs.innerHTML="";
+    (r.imagens||[]).forEach(img=>{
+      const card = imagemCard(img);
+      imgs.appendChild(card);
+      Anim.fadeIn(card,120,4);
+    });
+  }
 
   // Tabelas extras
-  $("#tabelasExtras").innerHTML="";
-  (r.tabelasExtras||[]).forEach(tbl=>{
-    const t = tabelaCard(tbl);
-    $("#tabelasExtras").appendChild(t);
-    Anim.fadeIn(t,120,4);
-  });
+  const extras = $("#tabelasExtras");
+  if(extras){
+    extras.innerHTML="";
+    (r.tabelasExtras||[]).forEach(tbl=>{
+      const t = tabelaCard(tbl);
+      extras.appendChild(t);
+      Anim.fadeIn(t,120,4);
+    });
+  }
+
+  // Reaplica bloqueio se viewer
+  applyRolePermissions();
 }
 
 function coletarForm(){
@@ -479,8 +518,9 @@ function addTabela(){
    Lista lateral (salvos)
    ========================= */
 function desenharLista(){
-  const termo=($("#filtroLista").value||"").toLowerCase();
-  const ul=$("#listaRelatorios"); ul.innerHTML="";
+  const termo=($("#filtroLista")?.value||"").toLowerCase();
+  const ul=$("#listaRelatorios"); if(!ul) return;
+  ul.innerHTML="";
   relatorios
     .filter(r=>[r.numeroRelatorio,r.responsavelTecnico,r.laboratorio].join(" ").toLowerCase().includes(termo))
     .sort((a,b)=>b.updatedAt-a.updatedAt)
@@ -496,6 +536,7 @@ function desenharLista(){
         atual=r; preencherForm(atual); toast("Relatório carregado");
       });
       $("button[data-delete]",li).addEventListener("click", async ()=>{
+        if(!hasRole("admin","editor")){ toast("Sem permissão para excluir.","error"); return; }
         if(!confirm("Apagar este relatório?")) return;
         await Anim.fadeOut(li,130,4);
         relatorios=relatorios.filter(x=>x.id!==r.id);
@@ -628,7 +669,7 @@ async function gerarPDF(){
   if (!ativos.length) {
     paragraph("Nenhum método marcado como aplicado.");
   } else {
-    ativos.forEach((m, idx) => {
+    ativos.forEach((m) => {
       ensureSpace(60);
       doc.setFont("helvetica","bold"); doc.setTextColor(THEME.ink);
       doc.text(`• ${m.metodo || "-"}`, MARGIN_X, y); y += 12;
@@ -808,7 +849,6 @@ const MetGrid = {
     if(this.editId){
       const i = this.state.findIndex(m=>m.id===this.editId);
       if(i>=0){
-        // impedir duplicata ao renomear
         if (this.state.some((m,ix)=>ix!==i && m.metodo.toLowerCase()===v.metodo.toLowerCase())){
           toast("Já existe um método com essa descrição.","error"); return;
         }
@@ -879,7 +919,6 @@ const MetGrid = {
       </tr>
     `).join("");
 
-    // micro anima em todas as linhas
     $$("#tblMetodos tbody tr").forEach((tr,i)=> Anim.fadeIn(tr,100+(i*10),4));
     if(scrollToEnd){ tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight; }
   }
@@ -890,27 +929,23 @@ function initMetodosGrid(){
   const btnClr = $("#btnLimparMetodo");
   const table  = $("#tblMetodos");
 
-  btnAdd?.addEventListener("click", ()=> MetGrid.save());
-  btnClr?.addEventListener("click", ()=> MetGrid.clear());
+  btnAdd?.addEventListener("click", ()=> withEditPerm(()=> MetGrid.save()));
+  btnClr?.addEventListener("click", ()=> withEditPerm(()=> MetGrid.clear()));
 
   table?.addEventListener("click", (ev)=>{
     const btn = ev.target.closest("button[data-action]");
     if(!btn) return;
     const id = btn.getAttribute("data-id");
-    if(btn.dataset.action==="edit")   MetGrid.edit(id);
-    if(btn.dataset.action==="delete") MetGrid.remove(id);
+    if(btn.dataset.action==="edit")   withEditPerm(()=> MetGrid.edit(id));
+    if(btn.dataset.action==="delete") withEditPerm(()=> MetGrid.remove(id));
   });
 
   table?.addEventListener("change", (ev)=>{
     const cb = ev.target.closest('input[type="checkbox"][data-id]');
     if(!cb) return;
-    MetGrid.toggleAplicado(cb.getAttribute("data-id"), cb.checked);
+    withEditPerm(()=> MetGrid.toggleAplicado(cb.getAttribute("data-id"), cb.checked));
   });
 }
-
-/* =========================
-   PDF (layout HTML) – já acima
-   ========================= */
 
 /* =========================
    Utilidades diversas
@@ -920,7 +955,6 @@ function escapeHtml(s){
     {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
   ));
 }
-
 
 /* =========================
    AUTH (localStorage)
@@ -969,17 +1003,41 @@ async function ensureDefaultAdmin(){
 /* UI helpers */
 function lockUI(locked=true){
   document.body.classList.toggle("locked", locked);
-  $("#authScreen").style.display = locked ? "grid" : "none";
+  const auth = $("#authScreen");
+  if(auth) auth.style.display = locked ? "grid" : "none";
 }
 function renderWhoAmI(){
   const s = getSession();
-  $("#whoami").textContent = s ? `${s.nome} (${s.role})` : "—";
+  const who = $("#whoami");
+  if(who) who.textContent = s ? `${s.nome} (${s.role})` : "—";
 }
 
 /* controle de permissão */
 function hasRole(...roles){
   const s = getSession();
   return !!(s && roles.includes(s.role));
+}
+
+/* aplica/retira disabled nos elementos conforme papel */
+function applyRolePermissions(){
+  const canEdit = hasRole("admin","editor");
+
+  // campos do formulário
+  $$("#formRelatorio input, #formRelatorio textarea, #formRelatorio select, #formRelatorio button").forEach(el=>{
+    // whitelist sempre habilitada:
+    const id = el.id || "";
+    const always = ["btnPDF","btnPDFhtml","btnImprimir","btnExportar"];
+    if(always.includes(id)) return;
+    el.disabled = !canEdit;
+  });
+
+  // botões do topo fora do form
+  $("#btnNovo")?.toggleAttribute("disabled", !canEdit);
+  $("#btnSalvar")?.toggleAttribute("disabled", !canEdit);
+  $("#inputImportar")?.toggleAttribute("disabled", !canEdit);
+
+  // acesso ao módulo de usuários: só admin
+  $("#btnUsers")?.toggleAttribute("disabled", !hasRole("admin"));
 }
 
 /* ===== Login / Logout ===== */
@@ -997,12 +1055,14 @@ function doLogout(){
   setSession(null);
   lockUI(true);
   renderWhoAmI();
+  applyRolePermissions();
   toast("Sessão encerrada");
 }
 
 /* ===== CRUD de usuários (admin) ===== */
 function usersRenderTable(){
   const tbody = $("#tblUsers tbody");
+  if(!tbody) return;
   const list = loadUsers().sort((a,b)=>a.nome.localeCompare(b.nome));
   tbody.innerHTML = list.map(u=>`
     <tr data-id="${u.id}">
@@ -1022,6 +1082,7 @@ function usersFillForm(u){
 }
 
 async function usersSaveOrUpdate(){
+  if(!hasRole("admin")){ toast("Apenas administradores podem gerenciar usuários.","error"); return; }
   const nome = $("#uNome").value.trim();
   const email = $("#uEmail").value.trim();
   const senha = $("#uSenha").value;
@@ -1034,7 +1095,6 @@ async function usersSaveOrUpdate(){
   if(editingId){
     const i = list.findIndex(u=>u.id===editingId);
     if(i<0){ toast("Usuário não encontrado.","error"); return; }
-    // impedir e-mail duplicado
     if(list.some((u,ix)=>ix!==i && u.email.toLowerCase()===email.toLowerCase())){
       toast("Já existe usuário com esse e-mail.","error"); return;
     }
@@ -1061,13 +1121,13 @@ async function usersSaveOrUpdate(){
 }
 
 function usersDelete(){
+  if(!hasRole("admin")){ toast("Apenas administradores podem excluir usuários.","error"); return; }
   const editingId = $("#userForm").dataset.editingId || null;
   if(!editingId){ toast("Selecione um usuário na tabela.","error"); return; }
   const list = loadUsers();
   const user = list.find(u=>u.id===editingId);
   if(!user) return;
   if(!confirm(`Excluir o usuário:\n\n${user.nome} <${user.email}> ?`)) return;
-  // impedir remover último admin
   if(user.role==="admin" && list.filter(u=>u.role==="admin").length===1){
     toast("Não é possível excluir o único admin.","error"); return;
   }
@@ -1093,7 +1153,6 @@ function importUsersJSON(ev){
   reader.onload=()=>{ try{
     const data=JSON.parse(reader.result);
     if(!Array.isArray(data)) throw new Error("Formato inválido");
-    // validação simples
     const ok = data.every(u=>u.id && u.email && u.pass && u.role);
     if(!ok) throw new Error("Campos obrigatórios ausentes.");
     saveUsers(data);
@@ -1101,4 +1160,53 @@ function importUsersJSON(ev){
   }catch(e){ toast("Arquivo inválido: "+e.message,"error"); }
   ev.target.value=""; };
   reader.readAsText(f);
+}
+
+/* ===== Bind de eventos de Auth e Usuários ===== */
+function bindAuthEvents(){
+  // Login
+  $("#loginForm")?.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const email = $("#loginEmail").value.trim();
+    const password = $("#loginPassword").value;
+    try{
+      await doLogin(email, password);
+      $("#loginPassword").value = "";
+      lockUI(false);
+      renderWhoAmI();
+      applyRolePermissions();
+      toast("Bem-vindo(a)!", "success");
+    }catch(err){
+      toast(err.message || "Falha no login.","error");
+    }
+  });
+
+  // Logout
+  $("#btnLogout")?.addEventListener("click", doLogout);
+
+  // Abrir gerenciador de usuários (admin)
+  $("#btnUsers")?.addEventListener("click", ()=>{
+    if(!hasRole("admin")){ toast("Apenas administradores.","error"); return; }
+    usersRenderTable();
+    usersFillForm(null);
+    $("#dlgUsers")?.showModal();
+  });
+
+  // Ações no gerenciador
+  $("#btnUserSave")?.addEventListener("click", usersSaveOrUpdate);
+  $("#btnUserNew")?.addEventListener("click", ()=> usersFillForm(null));
+  $("#btnUserDelete")?.addEventListener("click", usersDelete);
+
+  // Seleção de linha da tabela de usuários
+  $("#tblUsers")?.addEventListener("click", (e)=>{
+    const tr = e.target.closest("tr[data-id]");
+    if(!tr) return;
+    const id = tr.dataset.id;
+    const u = loadUsers().find(x=>x.id===id);
+    if(u) usersFillForm(u);
+  });
+
+  // Export/Import de usuários (card de login)
+  $("#btnExportUsers")?.addEventListener("click", exportUsersJSON);
+  $("#inputImportUsers")?.addEventListener("change", importUsersJSON);
 }

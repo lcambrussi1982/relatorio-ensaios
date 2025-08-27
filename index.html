@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="pt-br">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,21 +7,19 @@
 
   <!-- Bibliotecas para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 
   <link rel="stylesheet" href="style.css" />
   <meta name="color-scheme" content="light only">
   <meta name="theme-color" content="#E1262D">
 </head>
 
-<body>
+<body class="locked">
   <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- TOPBAR -->
   <header class="topbar" role="banner">
     <div class="brand" aria-label="Shiva Conexoes">
-      <!-- troque o src se estiver em outro caminho -->
       <img src="chiva.png" alt="Shiva Plásticos" />
       <div class="brand-text">
         <span class="brand-title">Relatórios de Ensaio</span>
@@ -42,6 +39,7 @@
         <input type="file" id="inputImportar" accept="application/json" />
       </label>
       <button id="btnImprimir" type="button" title="Impressão do layout (sistema do navegador)">Imprimir</button>
+
       <div class="userbox" aria-live="polite">
         <span id="whoami" class="whoami">—</span>
         <button id="btnUsers" type="button" class="secundario" title="Gerenciar usuários">Usuários</button>
@@ -78,59 +76,56 @@
     </form>
   </section>
 
+  <!-- MODAL: Gerenciar usuários (admin) -->
+  <dialog id="dlgUsers" class="dlg">
+    <form method="dialog" class="dlg-card" id="userForm">
+      <header class="dlg-head">
+        <h2>Usuários</h2>
+        <button value="cancel" class="secundario">Fechar</button>
+      </header>
+
+      <div class="grid">
+        <label>Nome
+          <input id="uNome" placeholder="Nome completo">
+        </label>
+        <label>E-mail
+          <input id="uEmail" type="email" placeholder="usuario@empresa.com" autocomplete="off">
+        </label>
+        <label>Senha
+          <input id="uSenha" type="password" placeholder="(preencha p/ definir)">
+        </label>
+        <label>Papel
+          <select id="uRole">
+            <option value="admin">admin</option>
+            <option value="editor" selected>editor</option>
+            <option value="viewer">viewer</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="inline" style="gap:8px;margin:10px 0;">
+        <button type="button" id="btnUserSave">Salvar/Atualizar</button>
+        <button type="button" id="btnUserNew" class="secundario">Novo</button>
+        <button type="button" id="btnUserDelete" class="danger">Excluir</button>
+      </div>
+
+      <div class="tabela-wrap">
+        <table class="tabela" id="tblUsers">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Papel</th>
+              <th>Atualizado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </form>
+  </dialog>
 
   <main class="layout" id="app" role="main">
-
-    <!-- MODAL: Gerenciar usuários (admin) -->
-    <dialog id="dlgUsers" class="dlg">
-      <form method="dialog" class="dlg-card" id="userForm">
-        <header class="dlg-head">
-          <h2>Usuários</h2>
-          <button value="cancel" class="secundario">Fechar</button>
-        </header>
-
-        <div class="grid">
-          <label>Nome
-            <input id="uNome" placeholder="Nome completo">
-          </label>
-          <label>E-mail
-            <input id="uEmail" type="email" placeholder="usuario@empresa.com" autocomplete="off">
-          </label>
-          <label>Senha
-            <input id="uSenha" type="password" placeholder="(preencha p/ definir)">
-          </label>
-          <label>Papel
-            <select id="uRole">
-              <option value="admin">admin</option>
-              <option value="editor" selected>editor</option>
-              <option value="viewer">viewer</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="inline" style="gap:8px;margin:10px 0;">
-          <button type="button" id="btnUserSave">Salvar/Atualizar</button>
-          <button type="button" id="btnUserNew" class="secundario">Novo</button>
-          <button type="button" id="btnUserDelete" class="danger">Excluir</button>
-        </div>
-
-        <div class="tabela-wrap">
-          <table class="tabela" id="tblUsers">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Papel</th>
-                <th>Atualizado</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </form>
-    </dialog>
-
-
     <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Lateral: Relatórios -->
@@ -166,10 +161,6 @@
             </label>
           </div>
 
-
-
-
-
           <!-- Combo de Normas de Referência -->
           <div class="combo">
             <label for="normasSelect">Normas de referência (selecione 1+)</label>
@@ -187,7 +178,6 @@
                   Você pode incluir novas normas pelo campo ou excluir as selecionadas.
                 </p>
               </div>
-
             </div>
           </div>
         </fieldset>
@@ -206,41 +196,33 @@
             placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
         </fieldset>
 
-        <!-- 4. Métodos -->
+        <!-- 4. Métodos (com grid CRUD) -->
         <legend>4. Métodos e Materiais Empregados</legend>
         <p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong>
           para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
 
-        <!-- Formulário de inclusão/edição rápida -->
         <div class="grid" style="margin-bottom:12px">
           <label>Método / Descrição
             <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
           </label>
-
           <label>Norma / Referência
             <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
           </label>
-
           <label>Equipamento
             <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
           </label>
-
           <label>Materiais
             <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
           </label>
-
           <label>Procedimento (resumo)
             <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
           </label>
-
           <label>Critério / Requisito
             <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
           </label>
-
           <label>Unidade
             <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
           </label>
-
           <label class="inline" style="align-items:flex-end">
             <input type="checkbox" id="metAplicado" />
             <span>Aplicado?</span>
@@ -252,7 +234,6 @@
           <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
         </div>
 
-        <!-- Grade (tabela) -->
         <div class="tabela-wrap">
           <table class="tabela" id="tblMetodos">
             <thead>
@@ -268,9 +249,7 @@
                 <th aria-label="Ações" style="min-width:140px">Ações</th>
               </tr>
             </thead>
-            <tbody>
-              <!-- linhas geradas via JS -->
-            </tbody>
+            <tbody></tbody>
           </table>
         </div>
 
@@ -278,7 +257,6 @@
           Dica: use descrições objetivas; detalhes extensos podem ir para anexos. Na impressão/PDF este cadastro pode
           ser ocultado com a classe <code>no-print</code> no fieldset.
         </p>
-
 
         <!-- 5. Resultados -->
         <fieldset>
@@ -366,6 +344,7 @@
       <div class="vw-plugin-top-wrapper"></div>
     </div>
   </div>
+  <!--
   <script>
     (function initVLibras() {
       function start() {
@@ -382,9 +361,7 @@
       }
     })();
   </script>
-
-
+-->
   <script src="script.js" defer></script>
 </body>
-
 </html>
