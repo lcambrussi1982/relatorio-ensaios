@@ -101,12 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindAuthEvents();
 
   const sess = getSession();
-  if (sess) {
-    lockUI(false);
-    renderWhoAmI();
-  } else {
-    lockUI(true);
-  }
+  if (sess) { lockUI(false); renderWhoAmI(); } else { lockUI(true); }
   applyRolePermissions(); // aplica bloqueios iniciais
 
   // --- APP UI ---
@@ -715,42 +710,89 @@ async function gerarPDF(){
   paragraph(`Planilhas/Gráficos: ${(anex.planilhas||[]).join("; ") || "-"}`);
   paragraph(`Fotos das amostras: ${(anex.fotos||[]).join("; ") || "-"}`);
 
+  // ===== 9. Imagens — lado a lado (imagem à esquerda; legenda+ALT à direita) com robustez
   if ((r.imagens||[]).length){
     title("9. Imagens");
-    const thumbW = 220, thumbMaxH = 160, gap = 14;
-    let col = 0;
-    for (let i=0;i<r.imagens.length;i++){
-      const it = r.imagens[i];
-      const url = (typeof it === "string") ? it : it.src;
-      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i+1}`;
-      try{
-        const dataUrl = await loadImageAsDataURL(url);
-        const img = new Image(); img.src = dataUrl;
-        await new Promise(res => { if (img.complete) res(); else img.onload = res; });
-        const ratio = img.naturalHeight / img.naturalWidth;
-        const h = Math.min(thumbW * ratio, thumbMaxH);
-        const w = thumbW;
-        ensureSpace(h + 18);
-        const x = MARGIN_X + col * (w + gap);
-        doc.addImage(dataUrl, "JPEG", x, y, w, h);
-        doc.setFontSize(9); doc.setTextColor(100);
-        doc.text(legenda, x, y + h + 10);
-        doc.setTextColor(THEME.ink);
-        if (col === 1){ y += h + 26; col = 0; } else { col = 1; }
-      }catch{
-        ensureSpace(14);
-        doc.setFontSize(10); doc.setTextColor(150);
-        doc.text(`(Não foi possível carregar a imagem ${i+1})`, MARGIN_X, y);
-        y += 16; doc.setTextColor(THEME.ink);
+
+    const IMG_W = 180;       // largura da imagem
+    const IMG_MAX_H = 150;   // altura máxima da imagem
+    const GAP_X = 16;        // espaço entre imagem e texto
+    const LINE_H = 12;
+
+    try {
+      for (let i=0;i<r.imagens.length;i++){
+        try{
+          const it = r.imagens[i];
+          const url = (typeof it === "string") ? it : it.src;
+          const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i+1}`;
+          const altText = (typeof it === "object" ? (it.alt||"") : "");
+
+          const dataUrl = await loadImageAsDataURL(url);
+          const img = new Image(); img.src = dataUrl;
+          await new Promise(res => { if (img.complete) res(); else img.onload = res; });
+
+          const ratio = img.naturalHeight / img.naturalWidth || 1;
+          const imgH = Math.min(IMG_W * ratio, IMG_MAX_H);
+          const TEXT_W = Math.max(10, (PAGE_W - 2*MARGIN_X) - IMG_W - GAP_X);
+
+          // bloco cabeçalho/ALT
+          doc.setFont("helvetica","bold");  doc.setFontSize(10); doc.setTextColor(THEME.ink);
+          const capTitle = `Figura ${i+1}${legenda ? ` — ${legenda}` : ""}`;
+          const capLines = doc.splitTextToSize(capTitle, TEXT_W);
+
+          doc.setFont("helvetica","normal"); doc.setFontSize(9);
+          const altLines = doc.splitTextToSize(altText ? `ALT: ${altText}` : "(ALT ausente)", TEXT_W);
+
+          const textBlockH = (capLines.length * LINE_H) + 4 + (altLines.length * LINE_H);
+          const rowH = Math.max(imgH, textBlockH);
+
+          ensureSpace(rowH + 18);
+
+          const imgX = MARGIN_X;
+          const textX = MARGIN_X + IMG_W + GAP_X;
+
+          // imagem + moldura
+          doc.setDrawColor(210);
+          doc.addImage(dataUrl, "JPEG", imgX, y, IMG_W, imgH);
+          doc.rect(imgX-1, y-1, IMG_W+2, imgH+2);
+
+          // legenda
+          let ty = y;
+          doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(THEME.ink);
+          capLines.forEach((ln, idx)=> doc.text(ln, textX, ty + (idx*LINE_H)));
+          ty += capLines.length * LINE_H + 4;
+
+          // ALT (vermelho se ausente)
+          doc.setFont("helvetica","normal"); doc.setFontSize(9);
+          doc.setTextColor(altText ? 90 : THEME.danger);
+          altLines.forEach((ln, idx)=> doc.text(ln, textX, ty + (idx*LINE_H)));
+
+          y += rowH + 18;
+          doc.setTextColor(THEME.ink);
+        }catch{
+          ensureSpace(20);
+          doc.setFontSize(10); doc.setTextColor(150);
+          doc.text(`(Não foi possível carregar uma imagem)`, MARGIN_X, y);
+          y += 16; doc.setTextColor(THEME.ink);
+        }
       }
+    } catch {
+      ensureSpace(16);
+      doc.setFontSize(10); doc.setTextColor(150);
+      doc.text("(Falha ao processar imagens — prosseguindo…)", MARGIN_X, y);
+      y += 14; doc.setTextColor(THEME.ink);
     }
-    if (col === 1) y += 8;
+
+    // reset estilo
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
   }
 
+  // ===== 10. Tabelas adicionais
   if ((r.tabelasExtras||[]).length){
     title("10. Tabelas adicionais");
     const colW = (PAGE_W - 2*MARGIN_X - 20) / 2;
     const lineH = 14;
+
     (r.tabelasExtras||[]).forEach((tbl, idxTbl) => {
       ensureSpace(18);
       doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
@@ -758,7 +800,7 @@ async function gerarPDF(){
       doc.text(titulo, MARGIN_X, y); y += 12;
       doc.setFont("helvetica","normal"); doc.setFontSize(10);
 
-      const linhas = tbl?.linhas || tbl || [];
+      const linhas = Array.isArray(tbl?.linhas) ? tbl.linhas : (Array.isArray(tbl) ? tbl : []);
       if (!linhas.length){ paragraph("(sem dados)"); return; }
 
       ensureSpace(lineH);
@@ -790,7 +832,7 @@ async function gerarPDF(){
 }
 
 /* =========================
-   PDF (layout HTML)
+   PDF (layout HTML) — alternativa visual do DOM
    ========================= */
 function gerarPDFhtml(){
   const relatorio=$("#formRelatorio");
