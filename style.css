@@ -500,3 +500,111 @@ select:focus {
     color: #000
   }
 }
+
+/* =========================================================
+   🔧 Melhorias de responsividade (drop-in overrides)
+   Cole no FINAL do arquivo
+   ========================================================= */
+
+/* Breakpoints utilitários */
+@media (max-width: 1280px) {
+  :root {
+    --fs-base: clamp(14px, 1.6vw, 16px);
+    --fs-sm: clamp(12px, 1.2vw, 14px);
+  }
+}
+
+/* ➊ Topbar mais flexível: quebra em 2 linhas quando preciso */
+@media (max-width: 1024px) {
+  .topbar {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .brand img { height: 56px; }
+  .actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .actions > * {
+    flex: 1 1 auto;          /* botões ocupam a linha */
+    min-width: 120px;
+  }
+}
+
+/* ➋ Sidebar: esconde em telas médias/pequenas por padrão */
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .lista-relatorios { display: none; }
+  /* o botão "☰ Lista" segue funcionando para alternar via JS (classe .aside-collapsed) */
+}
+
+/* ➌ Conteúdo: pads menores, grid mais “elástico” */
+@media (max-width: 900px) {
+  .conteudo { padding: 16px; }
+  .grid { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  form fieldset { padding: 14px; border-radius: 14px; }
+  legend { padding: 0 8px; }
+  input, textarea, select { padding: 10px; border-radius: 10px; }
+}
+
+/* ➍ Ações/controles: botões mais compactos */
+@media (max-width: 780px) {
+  button, .import {
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .btn-mini { padding: 5px 8px; border-radius: 8px; }
+  .brand img { height: 44px; }
+}
+
+/* ➎ Tabelas: rolagem melhor e células mais “respiráveis” no mobile */
+@media (max-width: 720px) {
+  .tabela-wrap {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .tabela {
+    min-width: 720px;      /* garante rolagem horizontal em telas menores */
+  }
+  .tabela td, .tabela thead th {
+    padding: 8px;
+  }
+  .tabela thead th { font-size: var(--fs-sm); }
+}
+
+/* ➏ Campos longos (normas/equip/proced) ocupam linha inteira em telas pequenas */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr; /* 1 coluna */
+  }
+  .actions > * { min-width: 46%; } /* dois botões por linha na maioria dos casos */
+  .brand-text { display: none; }   /* foca na logo para ganhar espaço */
+}
+
+/* ➐ Microajustes muito pequenos (<= 400px) */
+@media (max-width: 400px) {
+  .topbar { padding: 8px 10px; }
+  .actions > * { min-width: 100%; } /* um botão por linha */
+  .brand img { height: 38px; }
+  form fieldset { padding: 12px; }
+  input, textarea, select { padding: 8px; }
+}
+
+/* ➑ Espaço pro VLibras no mobile (evita sobrepor botões flutuantes) */
+@media (max-width: 640px) {
+  body { padding-bottom: 56px; } /* “calço” para o botão do VLibras */
+}
+
+/* ➒ Preferência de contraste/zoom: evita quebra feia quando usuário aumenta fontes */
+@media (max-width: 980px) {
+  html { word-break: break-word; }
+  .tabela { word-break: normal; } /* preserva células de tabela */
+}
+
+/* ➓ Print já está OK; aqui só reduzimos a min-width da tabela em print estreito */
+@media print and (max-width: 720px) {
+  .tabela { min-width: auto; }
+}
