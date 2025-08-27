@@ -658,3 +658,44 @@ select:focus {
     width: 100%;
   }
 }
+
+/* ========= Fix alinhamento do campo "Buscar..." na sidebar ========= */
+
+/* Usa grid para alinhar título e input na mesma linha e altura */
+.lista-relatorios .aside-head{
+  display:grid;
+  grid-template-columns: auto 1fr; /* h2 | input ocupa o resto */
+  align-items:center;              /* alinha verticalmente */
+  gap:10px;
+  padding-bottom:4px;              /* microcompensação visual */
+}
+
+/* Garante que o input ocupe toda a coluna e tenha altura consistente */
+#filtroLista{
+  width:100%;
+  height:40px;          /* altura fixa pra não “dançar” */
+  line-height:1;        /* evita alongar por tipografia */
+  padding:10px 12px;    /* já existia; mantém */
+  -webkit-appearance:none; /* corrige variações do <input type=search> */
+  appearance:none;
+}
+
+/* Evita que o h2 “puxe” o baseline; já sem margin por padrão, mas garantimos */
+.aside-head h2{
+  margin:0;
+  line-height:1.1;
+  align-self:center;
+}
+
+/* Em telas menores, põe o input abaixo do título, alinhado e com largura total */
+@media (max-width: 680px){
+  .lista-relatorios .aside-head{
+    grid-template-columns: 1fr; /* empilha */
+  }
+  .aside-head h2{
+    margin-bottom:6px;
+  }
+  #filtroLista{
+    height:38px; /* um pouco mais compacto no mobile */
+  }
+}
