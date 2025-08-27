@@ -608,3 +608,53 @@ select:focus {
 @media print and (max-width: 720px) {
   .tabela { min-width: auto; }
 }
+/* Responsividade do cabeçalho */
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .brand {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .brand img {
+    height: 50px;
+  }
+
+  .actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .actions button,
+  .actions .import {
+    flex: 1 1 auto; /* cada botão cresce igualmente */
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand img {
+    height: 40px;
+  }
+
+  .brand-text {
+    display: none; /* some em telas bem pequenas */
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actions button,
+  .actions .import {
+    width: 100%;
+  }
+}
