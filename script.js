@@ -14,15 +14,27 @@ const THEME = {
 
 /* ======= Normas (combo) – opções iniciais ======= */
 const NORMAS_OPCOES = [
-  "ABNT NBR 5648:2018",
-  "ABNT NBR 8219",
-  "ABNT NBR NM 82",
-  "EN 62321-3-1:2014",
-  "ABNT NBR NM 84",
-  "ABNT NBR 8218",
-  "ABNT NBR 14264",
-  "ABNT NBR 7371",
+  "ABNT NBR 5648:2018 =>  Tubos de PVC rígido para condução de água fria — Requisitos",
+  "ABNT NBR 8219 =>       Determinação da resistência ao impacto em tubos plásticos",
+  "ABNT NBR NM 82 =>      Determinação da densidade relativa e massa específica de plásticos",
+  "EN 62321-3-1:2014 =>   Determinação de substâncias restritas em produtos elétricos/eletrônicos",
+  "ABNT NBR NM 84 =>      Determinação da resistência à tração de plásticos",
+  "ABNT NBR 8218 =>       Determinação da resistência à pressão interna em tubos plásticos",
+  "ABNT NBR 14264 =>      Ensaios em conexões de PVC com junta elástica",
+  "ABNT NBR 7371 =>       Determinação da resistência ao impacto em conexões plásticas",
+  "ABNT NBR 5688:2010 =>  Tubos e conexões de PVC-U para águas pluviais, esgoto e ventilação",
+  "ABNT NBR 5626:1998 =>  Instalações prediais de água fria — Projeto, execução e manutenção",
+  "ABNT NBR 5674:2012 =>  Manutenção de edificações — Sistema de gestão de manutenção",
+  "ABNT NBR 7372:1982 =>  Execução de tubulações de pressão de PVC com diferentes tipos de junta",
+  "ABNT NBR 5680:1977 =>  Dimensões de tubos de PVC rígido",
+  "ABNT NBR 5683:1999 =>  Verificação da resistência à pressão hidrostática interna em tubos de PVC",
+  "ABNT NBR 5687:1999 =>  Verificação da estabilidade dimensional de tubos de PVC",
+  "ABNT NBR 6483:1999 =>  Verificação do comportamento ao achatamento em conexões de PVC",
+  "ABNT NBR 7231:1999 =>  Verificação do comportamento ao calor em conexões de PVC",
+  "ABNT NBR 14265:1999 => Verificação do desempenho de juntas soldáveis em conexões de PVC"
 ];
+
+
 
 const STORAGE_KEY = "relatorios-ensaio-v4";
 
