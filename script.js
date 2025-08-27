@@ -1,3 +1,4 @@
+
 /* =========================
    Paleta p/ PDF e UI
    ========================= */
@@ -185,209 +186,55 @@ function salvarAtual(){
 }
 
 /* =========================
-   Normas: combo (compat: dual seletor OU seletor único)
+   Normas: combo
    ========================= */
-const NormasUI = {
-  get hasDual(){ return !!document.getElementById("normasEscolhidas"); },
-  els(){
-    return {
-      disp: document.getElementById("normasSelect"),
-      chosen: document.getElementById("normasEscolhidas"),
-      search: document.getElementById("buscaNorma"),
-      nova: document.getElementById("novaNorma"),
-      btnAddSel: document.getElementById("btnAddSelecionadas"),
-      btnRemSel: document.getElementById("btnRemoverEscolhidas"),
-      btnUp: document.getElementById("btnMoverCima"),
-      btnDown: document.getElementById("btnMoverBaixo"),
-    };
-  }
-};
-
-function montarNormasSelect() {
-  const { disp, chosen, search } = NormasUI.els();
-  if (!disp) return;
-
-  if (NormasUI.hasDual && chosen) {
-    // dual seletor
-    disp.innerHTML = "";
-    const escolhidas = (atual?.normasReferencia || []);
-    const catalogo = Array.from(new Set([...NORMAS_OPCOES, ...escolhidas]));
-    catalogo
-      .filter(n => !escolhidas.includes(n))
-      .sort((a,b)=>a.localeCompare(b))
-      .forEach(n => disp.appendChild(el("option",{value:n},n)));
-
-    chosen.innerHTML = "";
-    escolhidas.forEach(n => chosen.appendChild(el("option",{value:n},n)));
-
-    ligaEventosNormas();
-    if (search) search.value = "";
-  } else {
-    // seletor único
-    disp.innerHTML = "";
-    Array.from(new Set([...NORMAS_OPCOES, ...atual.normasReferencia]))
-      .sort((a,b)=>a.localeCompare(b))
-      .forEach(n => disp.appendChild(el("option",{value:n},n)));
-    // marca as já salvas
-    const set = new Set(atual.normasReferencia);
-    $$("option", disp).forEach(o=> o.selected = set.has(o.value));
-  }
-}
-
-function getNormasSelecionadas(){
-  if (NormasUI.hasDual) {
-    return Array.from(document.querySelectorAll("#normasEscolhidas option")).map(o=>o.value);
-  }
+function montarNormasSelect(){
   const sel = $("#normasSelect");
-  return sel ? Array.from(sel.selectedOptions).map(o=>o.value) : [];
+  sel.innerHTML = "";
+  NORMAS_OPCOES.forEach(n=>{
+    const opt = el("option",{value:n},n);
+    sel.appendChild(opt);
+  });
 }
-
-function setNormasSelecionadas(valores = []){
-  const { disp, chosen } = NormasUI.els();
-  if (!disp) return;
-
-  if (NormasUI.hasDual && chosen) {
-    chosen.innerHTML = "";
-    valores.forEach(n => chosen.appendChild(el("option",{value:n},n)));
-
-    disp.innerHTML = "";
-    Array.from(new Set([...NORMAS_OPCOES, ...valores]))
-      .filter(n => !valores.includes(n))
-      .sort((a,b)=>a.localeCompare(b))
-      .forEach(n => disp.appendChild(el("option",{value:n},n)));
-  } else {
-    disp.innerHTML = "";
-    Array.from(new Set([...NORMAS_OPCOES, ...valores]))
-      .sort((a,b)=>a.localeCompare(b))
-      .forEach(n => disp.appendChild(el("option",{value:n},n)));
-    const set = new Set(valores);
-    $$("option", disp).forEach(o => o.selected = set.has(o.value));
-  }
+function setNormasSelecionadas(valores=[]){
+  const sel = $("#normasSelect"); const set = new Set(valores);
+  $$("option", sel).forEach(o => o.selected = set.has(o.value));
 }
-
+function getNormasSelecionadas(){
+  return Array.from($("#normasSelect").selectedOptions).map(o=>o.value);
+}
 function addNormaCustom(){
-  const { disp, chosen, nova } = NormasUI.els();
-  if (!disp || !nova) return;
-  const val = (nova.value || "").trim();
-  if(!val) return;
-
-  if (NormasUI.hasDual && chosen) {
-    // se já está nas escolhidas, só limpar
-    const exists = Array.from(chosen.options).some(o=>o.value.toLowerCase()===val.toLowerCase());
-    if (exists) { nova.value=""; return; }
-    chosen.appendChild(el("option",{value:val},val));
-    // remover dos disponíveis se houver
-    Array.from(disp.options).forEach(o=>{ if(o.value.toLowerCase()===val.toLowerCase()) o.remove(); });
-  } else {
-    // seletor único: adiciona e seleciona
-    let opt = Array.from(disp.options).find(o=>o.value.toLowerCase()===val.toLowerCase());
-    if(!opt){
-      opt = el("option",{value:val},val);
-      disp.appendChild(opt);
-    }
-    opt.selected = true;
-    Anim.flash(disp);
+  const inp = $("#novaNorma");
+  const valor = (inp.value||"").trim();
+  if(!valor) return;
+  const sel = $("#normasSelect");
+  let opt = Array.from(sel.options).find(o=>o.value.toLowerCase()===valor.toLowerCase());
+  if(!opt){
+    opt = el("option",{value:valor},valor);
+    sel.appendChild(opt);
+    Anim.flash(sel);
   }
-
-  // adiciona ao catálogo
-  if (!NORMAS_OPCOES.some(n=>n.toLowerCase()===val.toLowerCase())) NORMAS_OPCOES.push(val);
-  nova.value = "";
+  opt.selected = true;
+  inp.value = "";
   toast("Norma adicionada/selecionada", "success");
 }
-
 function delNormasSelecionadas(){
-  const { disp, chosen } = NormasUI.els();
-  if (!disp) return;
+  const sel = $("#normasSelect");
+  const selecionados = Array.from(sel.selectedOptions);
+  if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
 
-  if (NormasUI.hasDual && chosen) {
-    const selecionados = Array.from(chosen.selectedOptions);
-    if(!selecionados.length){ toast("Selecione ao menos uma norma na lista da direita.","error"); return; }
-    const nomes = selecionados.map(o=>o.text).join("\n- ");
-    if(!confirm(`Remover da seleção?\n\n- ${nomes}`)) return;
+  const nomes = selecionados.map(o=>o.text).join("\n- ");
+  const ok = confirm(`Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`);
+  if(!ok) return;
 
-    (async ()=>{
-      for (const o of selecionados){
-        await Anim.fadeOut(o,100,2);
-        // devolve aos disponíveis
-        if (!Array.from(disp.options).some(x=>x.value===o.value)){
-          disp.appendChild(el("option",{value:o.value},o.textContent));
-        }
-        o.remove();
-      }
-      ordenarSelect(disp);
-      toast("Norma(s) removida(s) da seleção");
-    })();
-  } else {
-    const selecionados = Array.from(disp.selectedOptions);
-    if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
-    const nomes = selecionados.map(o=>o.text).join("\n- ");
-    if(!confirm(`Excluir do catálogo?\n\n- ${nomes}`)) return;
-
-    (async ()=>{
-      for (const o of selecionados){
-        await Anim.fadeOut(o,100,2);
-        o.remove();
-      }
-      toast("Norma(s) excluída(s)");
-    })();
-  }
-}
-
-// Funções auxiliares do modo dual
-function ordenarSelect(sel){
-  const opts = Array.from(sel.options).sort((a,b)=>a.text.localeCompare(b.text));
-  sel.innerHTML=""; opts.forEach(o=>sel.appendChild(o));
-}
-function filtrarDisponiveis(){
-  const q = ($("#buscaNorma")?.value || "").toLowerCase();
-  const sel = $("#normasSelect"); if(!sel) return;
-  Array.from(sel.options).forEach(o=>{ o.hidden = !o.textContent.toLowerCase().includes(q); });
-}
-function moverParaEscolhidas(){
-  if (!NormasUI.hasDual) return;
-  const { disp, chosen } = NormasUI.els();
-  const move = Array.from(disp.selectedOptions);
-  move.forEach(o=>{
-    if(!Array.from(chosen.options).some(x=>x.value===o.value)){
-      chosen.appendChild(el("option",{value:o.value},o.textContent));
+  // animação de saída e remoção
+  (async ()=>{
+    for(const opt of selecionados){
+      await Anim.fadeOut(opt,120,2);
+      opt.remove();
     }
-    o.remove();
-  });
-}
-function moverParaDisponiveis(){
-  if (!NormasUI.hasDual) return;
-  const { disp, chosen } = NormasUI.els();
-  const move = Array.from(chosen.selectedOptions);
-  move.forEach(o=>{
-    if(!Array.from(disp.options).some(x=>x.value===o.value)){
-      disp.appendChild(el("option",{value:o.value},o.textContent));
-    }
-    o.remove();
-  });
-  ordenarSelect(disp);
-}
-function moverOrdemEscolhida(sentido){
-  if (!NormasUI.hasDual) return;
-  const sel = document.getElementById("normasEscolhidas");
-  const opts = Array.from(sel.options);
-  const selIdxs = opts.map((o,i)=>o.selected?i:-1).filter(i=>i>=0);
-  if(!selIdxs.length) return;
-  if (sentido === "up"){
-    selIdxs.forEach(i=>{ if(i>0) sel.insertBefore(opts[i], opts[i-1]); });
-  } else {
-    selIdxs.reverse().forEach(i=>{ if(i<opts.length-1) sel.insertBefore(opts[i+1], opts[i]); });
-  }
-}
-function ligaEventosNormas(){
-  if (!NormasUI.hasDual) return;
-  $("#buscaNorma")?.removeEventListener("input", filtrarDisponiveis);
-  $("#buscaNorma")?.addEventListener("input", filtrarDisponiveis);
-  $("#btnAddSelecionadas")?.onclick = moverParaEscolhidas;
-  $("#btnRemoverEscolhidas")?.onclick = delNormasSelecionadas;
-  $("#btnMoverCima")?.onclick = ()=>moverOrdemEscolhida("up");
-  $("#btnMoverBaixo")?.onclick = ()=>moverOrdemEscolhida("down");
-  $("#normasSelect")?.addEventListener("dblclick", moverParaEscolhidas);
-  $("#normasEscolhidas")?.addEventListener("dblclick", moverParaDisponiveis);
+    toast("Normas removidas");
+  })();
 }
 
 /* =========================
@@ -403,10 +250,7 @@ function preencherForm(r){
   setNormasSelecionadas(r.normasReferencia||[]);
   f.objetivo.value=r.objetivo||"";
   f.discussao.value=r.discussao||"";
-  // radios de conclusão
-  const val = r.conclusao?.status || "Conforme";
-  const radio = document.querySelector(`input[name="statusConclusao"][value="${val}"]`);
-  if (radio) radio.checked = true;
+  f.statusConclusao.value=r.conclusao?.status||"Conforme";
   f.conclusaoObs.value=r.conclusao?.observacoes||"";
   f.anexosCertificados.value=(r.anexos?.certificados||[]).join("; ");
   f.anexosPlanilhas.value=(r.anexos?.planilhas||[]).join("; ");
@@ -452,8 +296,6 @@ function preencherForm(r){
 
 function coletarForm(){
   const f=$("#formRelatorio");
-  // status de conclusão pelo radio
-  const statusRad = document.querySelector('input[name="statusConclusao"]:checked')?.value || "Conforme";
   return {
     id:f.id.value||uid(),
     numeroRelatorio:f.numeroRelatorio.value.trim(),
@@ -487,7 +329,7 @@ function coletarForm(){
     })),
 
     discussao:f.discussao.value.trim(),
-    conclusao:{ status: statusRad, observacoes:f.conclusaoObs.value.trim() },
+    conclusao:{ status:f.statusConclusao.value, observacoes:f.conclusaoObs.value.trim() },
 
     anexos:{
       certificados:splitList(f.anexosCertificados.value),
@@ -786,7 +628,7 @@ async function gerarPDF(){
   if (!ativos.length) {
     paragraph("Nenhum método marcado como aplicado.");
   } else {
-    ativos.forEach((m) => {
+    ativos.forEach((m, idx) => {
       ensureSpace(60);
       doc.setFont("helvetica","bold"); doc.setTextColor(THEME.ink);
       doc.text(`• ${m.metodo || "-"}`, MARGIN_X, y); y += 12;
@@ -966,6 +808,7 @@ const MetGrid = {
     if(this.editId){
       const i = this.state.findIndex(m=>m.id===this.editId);
       if(i>=0){
+        // impedir duplicata ao renomear
         if (this.state.some((m,ix)=>ix!==i && m.metodo.toLowerCase()===v.metodo.toLowerCase())){
           toast("Já existe um método com essa descrição.","error"); return;
         }
@@ -1036,6 +879,7 @@ const MetGrid = {
       </tr>
     `).join("");
 
+    // micro anima em todas as linhas
     $$("#tblMetodos tbody tr").forEach((tr,i)=> Anim.fadeIn(tr,100+(i*10),4));
     if(scrollToEnd){ tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight; }
   }
@@ -1063,6 +907,10 @@ function initMetodosGrid(){
     MetGrid.toggleAplicado(cb.getAttribute("data-id"), cb.checked);
   });
 }
+
+/* =========================
+   PDF (layout HTML) – já acima
+   ========================= */
 
 /* =========================
    Utilidades diversas

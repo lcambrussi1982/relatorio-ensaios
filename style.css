@@ -1,5 +1,5 @@
 /* =========================================================
-   Shiva/Chiva — UI base + Responsividade (versão refinada)
+   Shiva/Chiva — UI base + Responsividade
    ========================================================= */
 :root {
   /* Cores */
@@ -20,10 +20,12 @@
   --ring: 0 0 0 4px rgba(225, 38, 45, .18);
   --shadow: 0 8px 24px rgba(15, 30, 61, .08);
 
-  /* Tipografia e container */
+  /* Tipografia */
   --fs-base: clamp(14px, 1.6vw, 16px);
   --fs-sm: clamp(12px, 1.2vw, 14px);
   --fs-lg: clamp(18px, 2.2vw, 22px);
+
+  /* Layout */
   --container: 1120px;
 }
 
@@ -67,25 +69,29 @@ body {
 }
 
 /* =========================================================
-   Topbar
+   Topbar (responsiva)
    ========================================================= */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 20;
-  width: 100%;
-  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 10px 18px;
   background: #0F1E3D;
   border-bottom: 2px solid var(--brand);
   box-shadow: var(--shadow);
-  display: flex;
-  justify-content: center;
+  max-width: 100%;
+  width: 100%;
 }
 
 .topbar-inner {
+  /* evita esticar em telas largas e dá wrap bonito */
   width: 100%;
   max-width: var(--container);
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -171,17 +177,12 @@ button:active {
 
 button.danger {
   border-color: var(--danger);
-  background: var(--danger)
+  background: var(--danger);
+  color: #fff
 }
 
 button.danger:hover {
   background: #b91c1c
-}
-
-/* Melhor foco */
-:where(button, .import, input, select, textarea):focus {
-  outline: none;
-  box-shadow: var(--ring)
 }
 
 /* =========================================================
@@ -217,7 +218,6 @@ body.aside-collapsed .lista-relatorios {
   border-radius: 14px;
   padding: 16px;
   height: max-content;
-  min-width: 0;
 }
 
 .aside-head {
@@ -225,7 +225,7 @@ body.aside-collapsed .lista-relatorios {
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 14px
 }
 
 .aside-head h2 {
@@ -259,7 +259,7 @@ body.aside-collapsed .lista-relatorios {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 10px
 }
 
 #listaRelatorios li {
@@ -337,6 +337,7 @@ select {
   border: 1px solid var(--border);
   background: #fff;
   color: var(--ink);
+  outline: none;
   transition: box-shadow .15s ease, border-color .15s ease;
 }
 
@@ -352,9 +353,7 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(0, 119, 182, .2)
 }
 
-/* =========================================================
-   Combo de Normas (dual list + busca)
-   ========================================================= */
+/* Combo de normas */
 .combo {
   display: block
 }
@@ -362,48 +361,15 @@ select:focus {
 .combo-grid {
   display: grid;
   grid-template-columns: 1fr 280px;
-  gap: 12px;
-  align-items: start
+  gap: 12px
 }
 
-#buscaNorma {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #fff;
-  outline: none
-}
-
-#buscaNorma:focus {
-  box-shadow: var(--ring);
-  border-color: #FFCDD0
-}
-
-#normasSelect,
-#normasEscolhidas {
-  width: 100%;
-  min-height: 240px;
-  padding: 8px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #fff;
-  -webkit-overflow-scrolling: touch;
-}
-
-#normasSelect option[hidden] {
-  display: none
+#normasSelect {
+  min-height: 176px
 }
 
 .addbox input {
   margin-bottom: 8px
-}
-
-/* Botões finos na área de normas */
-#btnAddSelecionadas,
-#btnRemoverEscolhidas,
-#btnMoverCima,
-#btnMoverBaixo {
-  min-width: 120px
 }
 
 /* =========================================================
@@ -412,18 +378,19 @@ select:focus {
 .tabela-wrap {
   width: 100%;
   overflow: auto;
-  -webkit-overflow-scrolling: touch
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabela {
   width: 100%;
-  min-width: 720px;
   border-collapse: separate;
   border-spacing: 0;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
+  min-width: 720px;
+  /* garante scroll em telas pequenas */
 }
 
 .tabela thead th {
@@ -469,8 +436,8 @@ select:focus {
 
 .btn-mini.danger {
   border-color: var(--danger);
-  background: var(--danger);
-  color: #fff
+  color: #fff;
+  background: var(--danger)
 }
 
 .btn-mini.danger:hover {
@@ -497,7 +464,7 @@ select:focus {
    Responsividade
    ========================================================= */
 
-/* 1280-1025 */
+/* >=1025 e <=1280: pequenas reduções */
 @media (max-width:1280px) {
   :root {
     --container: 1040px
@@ -538,7 +505,7 @@ select:focus {
   }
 }
 
-/* <=900: foca no conteúdo, campos compactos */
+/* <=900: some sidebar, conteúdo em foco, campos compactos */
 @media (max-width:900px) {
   :root {
     --container: 100%
@@ -570,17 +537,15 @@ select:focus {
     padding: 10px;
     border-radius: 10px
   }
-
-  .combo-grid {
-    grid-template-columns: 1fr
-  }
-
-  /* normas empilham */
 }
 
-/* <=768: empilha cabeçalho e reduz tabela padding */
+/* <=768: cabeçalho empilha (logo em cima, botões abaixo) */
 @media (max-width:768px) {
   .topbar-inner {
+    width: 100%;
+    max-width: var(--container);
+    margin: 0 auto;
+    display: flex;
     flex-direction: column;
     align-items: stretch
   }
@@ -602,13 +567,14 @@ select:focus {
     min-width: 140px
   }
 
+  /* 2 colunas */
   .tabela thead th,
   .tabela td {
     padding: 9px
   }
 }
 
-/* <=640: uma coluna, botões 100%, logo menor */
+/* <=640: uma coluna, botões em stack, logo menor */
 @media (max-width:640px) {
   .brand img {
     height: 44px
@@ -627,6 +593,7 @@ select:focus {
     min-width: 100%
   }
 
+  /* botões 100% */
   .grid {
     grid-template-columns: 1fr
   }
@@ -639,10 +606,10 @@ select:focus {
     padding-bottom: 56px
   }
 
-  /* calço pro VLibras */
+  /* calço pro botão VLibras */
 }
 
-/* <=520: título+busca da sidebar em coluna */
+/* <=520: título da marca já está oculto acima; apenas finos */
 @media (max-width:520px) {
   .aside-head {
     grid-template-columns: 1fr
@@ -681,17 +648,6 @@ select:focus {
   .tabela thead th,
   .tabela td {
     padding: 8px
-  }
-}
-
-/* Zoom/contraste: evita quebra feia ao aumentar fontes */
-@media (max-width:980px) {
-  html {
-    word-break: break-word
-  }
-
-  .tabela {
-    word-break: normal
   }
 }
 
@@ -754,34 +710,79 @@ select:focus {
   }
 }
 
-/* =========================================================
-   Extras de qualidade de vida
-   ========================================================= */
-/* Scrollbar discreta (webkit) */
-.tabela-wrap::-webkit-scrollbar,
-#normasSelect::-webkit-scrollbar,
-#normasEscolhidas::-webkit-scrollbar {
-  height: 8px;
-  width: 8px
+/* ====== Wrapper do cabeçalho para responsividade elegante ====== */
+.topbar-inner{
+  width:100%;
+  max-width:1120px;          /* acompanha seu container do layout */
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;            /* permite quebrar em 2 linhas (logo em cima, botões abaixo) */
 }
 
-.tabela-wrap::-webkit-scrollbar-thumb,
-#normasSelect::-webkit-scrollbar-thumb,
-#normasEscolhidas::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 8px
+/* Tablet: os botões ocupam a linha inteira quando necessário */
+@media (max-width:1024px){
+  .topbar{ padding:10px 14px; }
+  .topbar-inner{ gap:12px; }
+  .actions{ width:100%; justify-content:flex-start; gap:6px; }
+  .actions > *{ flex:1 1 auto; min-width:140px; }
+  .brand img{ height:56px; }
 }
 
-/* Reduz movimento se usuário preferir */
-@media (prefers-reduced-motion:reduce) {
-  * {
-    animation: none !important;
-    transition: none !important
-  }
+/* Empilha no mobile: 2 colunas de botões (quando couber) */
+@media (max-width:768px){
+  .topbar-inner{ flex-direction:column; align-items:stretch; }
+  .brand{ justify-content:center; }
+  .brand-text{ text-align:center; }
+  .actions{ width:100%; }
+  .actions > *{ flex:1 1 48%; min-width:140px; } /* 2 colunas */
+  .tabela thead th, .tabela td{ padding:9px; }
 }
 
-/* Estados inválidos (HTML5) */
-:where(input, select, textarea):user-invalid {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, .15)
+/* Celular estreito: botões empilhados, logo menor */
+@media (max-width:640px){
+  .brand img{ height:44px; }
+  .brand-text{ display:none; } /* mais espaço */
+  .actions{ gap:8px; }
+  .actions > *{ flex:1 1 100%; min-width:100%; } /* botões 100% */
+  .grid{ grid-template-columns:1fr; }            /* grids viram 1 coluna */
+  .tabela{ min-width:640px; }                    /* rolável horizontal */
+  body{ padding-bottom:56px; }                   /* calço pro VLibras */
+}
+
+/* Sidebar: título + busca alinhados e responsivos */
+.lista-relatorios .aside-head{
+  display:grid;
+  grid-template-columns:auto 1fr; /* h2 | busca preenche o resto */
+  align-items:center;
+  gap:10px;
+}
+#filtroLista{
+  width:100%;
+  height:40px;
+  -webkit-appearance:none; appearance:none;
+}
+
+/* Layout: centralizado e com gap consistente */
+.layout{
+  width:100%;
+  max-width:1120px;
+  margin:14px auto;
+  padding:0 12px;
+  gap:16px;
+}
+@media (max-width:900px){
+  .layout{ grid-template-columns:1fr; }
+  .lista-relatorios{ display:none; } /* foca no conteúdo em telas menores */
+}
+
+/* Tabela: rolagem suave e padding reduzido em telas menores */
+.tabela-wrap{ -webkit-overflow-scrolling:touch; }
+@media (max-width:720px){
+  .tabela{ min-width:720px; }
+}
+@media (max-width:480px){
+  .tabela thead th, .tabela td{ padding:8px; }
 }
