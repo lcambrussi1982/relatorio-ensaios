@@ -1,4 +1,3 @@
-
 /* =========================
    Paleta p/ PDF e UI
    ========================= */
@@ -186,232 +185,210 @@ function salvarAtual(){
 }
 
 /* =========================
-   Normas: combo
+   Normas: combo (compat: dual seletor OU seletor único)
    ========================= */
+const NormasUI = {
+  get hasDual(){ return !!document.getElementById("normasEscolhidas"); },
+  els(){
+    return {
+      disp: document.getElementById("normasSelect"),
+      chosen: document.getElementById("normasEscolhidas"),
+      search: document.getElementById("buscaNorma"),
+      nova: document.getElementById("novaNorma"),
+      btnAddSel: document.getElementById("btnAddSelecionadas"),
+      btnRemSel: document.getElementById("btnRemoverEscolhidas"),
+      btnUp: document.getElementById("btnMoverCima"),
+      btnDown: document.getElementById("btnMoverBaixo"),
+    };
+  }
+};
 
-/* ======= Normas: duplo seletor com busca ======= */
 function montarNormasSelect() {
-  // monta as listas baseado no catálogo + estado atual do relatório
-  const selectDisponiveis = document.getElementById("normasSelect");
-  const selectEscolhidas  = document.getElementById("normasEscolhidas");
-  const busca             = document.getElementById("buscaNorma");
+  const { disp, chosen, search } = NormasUI.els();
+  if (!disp) return;
 
-  // Limpa
-  selectDisponiveis.innerHTML = "";
-  // Catálogo único (catálogo default + itens já escolhidos que não existam no catálogo)
-  const escolhidas = (atual?.normasReferencia || []);
-  const catalogo = Array.from(new Set([...NORMAS_OPCOES, ...escolhidas]));
+  if (NormasUI.hasDual && chosen) {
+    // dual seletor
+    disp.innerHTML = "";
+    const escolhidas = (atual?.normasReferencia || []);
+    const catalogo = Array.from(new Set([...NORMAS_OPCOES, ...escolhidas]));
+    catalogo
+      .filter(n => !escolhidas.includes(n))
+      .sort((a,b)=>a.localeCompare(b))
+      .forEach(n => disp.appendChild(el("option",{value:n},n)));
 
-  // Preenche disponíveis (não duplicar as já escolhidas)
-  catalogo
-    .filter(n => !escolhidas.includes(n))
-    .sort((a,b)=>a.localeCompare(b))
-    .forEach(n => {
-      const opt = document.createElement("option");
-      opt.value = n; opt.textContent = n;
-      selectDisponiveis.appendChild(opt);
-    });
+    chosen.innerHTML = "";
+    escolhidas.forEach(n => chosen.appendChild(el("option",{value:n},n)));
 
-  // Preenche escolhidas na ordem salva
-  selectEscolhidas.innerHTML = "";
-  escolhidas.forEach(n => {
-    const opt = document.createElement("option");
-    opt.value = n; opt.textContent = n;
-    selectEscolhidas.appendChild(opt);
-  });
-
-  // (Re)liga eventos
-  ligaEventosNormas();
-
-  // Reseta busca
-  if (busca) busca.value = "";
+    ligaEventosNormas();
+    if (search) search.value = "";
+  } else {
+    // seletor único
+    disp.innerHTML = "";
+    Array.from(new Set([...NORMAS_OPCOES, ...atual.normasReferencia]))
+      .sort((a,b)=>a.localeCompare(b))
+      .forEach(n => disp.appendChild(el("option",{value:n},n)));
+    // marca as já salvas
+    const set = new Set(atual.normasReferencia);
+    $$("option", disp).forEach(o=> o.selected = set.has(o.value));
+  }
 }
 
-// retorna array com as normas que estão na lista "selecionadas"
 function getNormasSelecionadas(){
-  return Array.from(document.querySelectorAll("#normasEscolhidas option")).map(o => o.value);
+  if (NormasUI.hasDual) {
+    return Array.from(document.querySelectorAll("#normasEscolhidas option")).map(o=>o.value);
+  }
+  const sel = $("#normasSelect");
+  return sel ? Array.from(sel.selectedOptions).map(o=>o.value) : [];
 }
 
-// marca selecionadas a partir de um array (usado em preencherForm)
 function setNormasSelecionadas(valores = []){
-  const selectEscolhidas  = document.getElementById("normasEscolhidas");
-  selectEscolhidas.innerHTML = "";
-  valores.forEach(n => {
-    const opt = document.createElement("option");
-    opt.value = n; opt.textContent = n;
-    selectEscolhidas.appendChild(opt);
-  });
-  // reconstruir disponíveis também (para não duplicar)
-  const selectDisponiveis = document.getElementById("normasSelect");
-  selectDisponiveis.innerHTML = "";
-  const catalogo = Array.from(new Set([...NORMAS_OPCOES, ...valores]));
-  catalogo
-    .filter(n => !valores.includes(n))
-    .sort((a,b)=>a.localeCompare(b))
-    .forEach(n => {
-      const opt = document.createElement("option");
-      opt.value = n; opt.textContent = n;
-      selectDisponiveis.appendChild(opt);
-    });
+  const { disp, chosen } = NormasUI.els();
+  if (!disp) return;
+
+  if (NormasUI.hasDual && chosen) {
+    chosen.innerHTML = "";
+    valores.forEach(n => chosen.appendChild(el("option",{value:n},n)));
+
+    disp.innerHTML = "";
+    Array.from(new Set([...NORMAS_OPCOES, ...valores]))
+      .filter(n => !valores.includes(n))
+      .sort((a,b)=>a.localeCompare(b))
+      .forEach(n => disp.appendChild(el("option",{value:n},n)));
+  } else {
+    disp.innerHTML = "";
+    Array.from(new Set([...NORMAS_OPCOES, ...valores]))
+      .sort((a,b)=>a.localeCompare(b))
+      .forEach(n => disp.appendChild(el("option",{value:n},n)));
+    const set = new Set(valores);
+    $$("option", disp).forEach(o => o.selected = set.has(o.value));
+  }
 }
 
-// adiciona norma personalizada
 function addNormaCustom(){
-  const inp = document.getElementById("novaNorma");
-  const val = (inp.value || "").trim();
+  const { disp, chosen, nova } = NormasUI.els();
+  if (!disp || !nova) return;
+  const val = (nova.value || "").trim();
   if(!val) return;
 
-  // se já está nas escolhidas, apenas limpa o campo
-  const jaTem = getNormasSelecionadas().some(n => n.toLowerCase() === val.toLowerCase());
-  if (jaTem) { inp.value = ""; return; }
-
-  // adiciona em "escolhidas"
-  const selectEscolhidas = document.getElementById("normasEscolhidas");
-  const opt = document.createElement("option");
-  opt.value = val; opt.textContent = val;
-  selectEscolhidas.appendChild(opt);
-
-  // se não existia no catálogo, inclui para futuras telas
-  if (!NORMAS_OPCOES.some(n => n.toLowerCase() === val.toLowerCase())){
-    NORMAS_OPCOES.push(val);
+  if (NormasUI.hasDual && chosen) {
+    // se já está nas escolhidas, só limpar
+    const exists = Array.from(chosen.options).some(o=>o.value.toLowerCase()===val.toLowerCase());
+    if (exists) { nova.value=""; return; }
+    chosen.appendChild(el("option",{value:val},val));
+    // remover dos disponíveis se houver
+    Array.from(disp.options).forEach(o=>{ if(o.value.toLowerCase()===val.toLowerCase()) o.remove(); });
+  } else {
+    // seletor único: adiciona e seleciona
+    let opt = Array.from(disp.options).find(o=>o.value.toLowerCase()===val.toLowerCase());
+    if(!opt){
+      opt = el("option",{value:val},val);
+      disp.appendChild(opt);
+    }
+    opt.selected = true;
+    Anim.flash(disp);
   }
 
-  // remove dos disponíveis, se estiver
-  const selectDisponiveis = document.getElementById("normasSelect");
-  Array.from(selectDisponiveis.options).forEach(o => {
-    if (o.value.toLowerCase() === val.toLowerCase()) o.remove();
-  });
-
-  inp.value = "";
+  // adiciona ao catálogo
+  if (!NORMAS_OPCOES.some(n=>n.toLowerCase()===val.toLowerCase())) NORMAS_OPCOES.push(val);
+  nova.value = "";
+  toast("Norma adicionada/selecionada", "success");
 }
 
-// excluir norma das ESCOLHIDAS (lado direito) com confirmação
-function deleteNormasEscolhidas(){
-  const sel = document.getElementById("normasEscolhidas");
-  const selecionados = Array.from(sel.selectedOptions);
-  if(!selecionados.length){ alert("Selecione pelo menos uma norma para remover."); return; }
+function delNormasSelecionadas(){
+  const { disp, chosen } = NormasUI.els();
+  if (!disp) return;
 
-  const nomes = selecionados.map(o=>o.textContent).join("\n- ");
-  if(!confirm(`Você tem certeza que deseja remover as seguintes norma(s) da seleção?\n\n- ${nomes}`)) return;
+  if (NormasUI.hasDual && chosen) {
+    const selecionados = Array.from(chosen.selectedOptions);
+    if(!selecionados.length){ toast("Selecione ao menos uma norma na lista da direita.","error"); return; }
+    const nomes = selecionados.map(o=>o.text).join("\n- ");
+    if(!confirm(`Remover da seleção?\n\n- ${nomes}`)) return;
 
-  // move de volta para disponíveis (ordenado)
-  const disp = document.getElementById("normasSelect");
-  selecionados.forEach(o=>{
-    // devolver ao disponíveis somente se ela fizer parte do catálogo
-    if (!Array.from(disp.options).some(x => x.value === o.value)) {
-      const opt = document.createElement("option");
-      opt.value = o.value; opt.textContent = o.textContent;
-      disp.appendChild(opt);
-    }
-    o.remove();
-  });
+    (async ()=>{
+      for (const o of selecionados){
+        await Anim.fadeOut(o,100,2);
+        // devolve aos disponíveis
+        if (!Array.from(disp.options).some(x=>x.value===o.value)){
+          disp.appendChild(el("option",{value:o.value},o.textContent));
+        }
+        o.remove();
+      }
+      ordenarSelect(disp);
+      toast("Norma(s) removida(s) da seleção");
+    })();
+  } else {
+    const selecionados = Array.from(disp.selectedOptions);
+    if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
+    const nomes = selecionados.map(o=>o.text).join("\n- ");
+    if(!confirm(`Excluir do catálogo?\n\n- ${nomes}`)) return;
 
-  ordenarSelect(disp);
+    (async ()=>{
+      for (const o of selecionados){
+        await Anim.fadeOut(o,100,2);
+        o.remove();
+      }
+      toast("Norma(s) excluída(s)");
+    })();
+  }
 }
 
-// mover selecionadas (ESQUERDA -> DIREITA)
-function moverParaEscolhidas(){
-  const disp = document.getElementById("normasSelect");
-  const esc  = document.getElementById("normasEscolhidas");
-  const move = Array.from(disp.selectedOptions);
-  if(!move.length) return;
-  move.forEach(o=>{
-    // evitar duplicata
-    if(!Array.from(esc.options).some(x=>x.value===o.value)){
-      const opt = document.createElement("option");
-      opt.value = o.value; opt.textContent = o.textContent;
-      esc.appendChild(opt);
-    }
-    o.remove();
-  });
-}
-
-// mover de volta (DIREITA -> ESQUERDA) — sem confirmação (botão específico usa confirmação)
-function moverParaDisponiveis(){
-  const disp = document.getElementById("normasSelect");
-  const esc  = document.getElementById("normasEscolhidas");
-  const move = Array.from(esc.selectedOptions);
-  move.forEach(o=>{
-    // só devolve se fizer sentido manter no catálogo
-    if(!Array.from(disp.options).some(x=>x.value===o.value)){
-      const opt = document.createElement("option");
-      opt.value = o.value; opt.textContent = o.textContent;
-      disp.appendChild(opt);
-    }
-    o.remove();
-  });
-  ordenarSelect(disp);
-}
-
+// Funções auxiliares do modo dual
 function ordenarSelect(sel){
   const opts = Array.from(sel.options).sort((a,b)=>a.text.localeCompare(b.text));
   sel.innerHTML=""; opts.forEach(o=>sel.appendChild(o));
 }
-
-// filtro de busca (lado ESQUERDO)
 function filtrarDisponiveis(){
-  const q = (document.getElementById("buscaNorma").value || "").toLowerCase();
-  const sel = document.getElementById("normasSelect");
-  Array.from(sel.options).forEach(o=>{
-    const show = o.textContent.toLowerCase().includes(q);
-    o.hidden = !show;
+  const q = ($("#buscaNorma")?.value || "").toLowerCase();
+  const sel = $("#normasSelect"); if(!sel) return;
+  Array.from(sel.options).forEach(o=>{ o.hidden = !o.textContent.toLowerCase().includes(q); });
+}
+function moverParaEscolhidas(){
+  if (!NormasUI.hasDual) return;
+  const { disp, chosen } = NormasUI.els();
+  const move = Array.from(disp.selectedOptions);
+  move.forEach(o=>{
+    if(!Array.from(chosen.options).some(x=>x.value===o.value)){
+      chosen.appendChild(el("option",{value:o.value},o.textContent));
+    }
+    o.remove();
   });
 }
-
-// Ordenação da lista de escolhidas ↑ ↓
+function moverParaDisponiveis(){
+  if (!NormasUI.hasDual) return;
+  const { disp, chosen } = NormasUI.els();
+  const move = Array.from(chosen.selectedOptions);
+  move.forEach(o=>{
+    if(!Array.from(disp.options).some(x=>x.value===o.value)){
+      disp.appendChild(el("option",{value:o.value},o.textContent));
+    }
+    o.remove();
+  });
+  ordenarSelect(disp);
+}
 function moverOrdemEscolhida(sentido){
+  if (!NormasUI.hasDual) return;
   const sel = document.getElementById("normasEscolhidas");
   const opts = Array.from(sel.options);
   const selIdxs = opts.map((o,i)=>o.selected?i:-1).filter(i=>i>=0);
   if(!selIdxs.length) return;
-
   if (sentido === "up"){
-    selIdxs.forEach(i=>{
-      if(i === 0) return;
-      sel.insertBefore(opts[i], opts[i-1]);
-    });
+    selIdxs.forEach(i=>{ if(i>0) sel.insertBefore(opts[i], opts[i-1]); });
   } else {
-    selIdxs.reverse().forEach(i=>{
-      if(i === opts.length-1) return;
-      sel.insertBefore(opts[i+1], opts[i]);
-    });
+    selIdxs.reverse().forEach(i=>{ if(i<opts.length-1) sel.insertBefore(opts[i+1], opts[i]); });
   }
 }
-
-// liga os eventos dos controles de normas
 function ligaEventosNormas(){
-  const disp = document.getElementById("normasSelect");
-  const esc  = document.getElementById("normasEscolhidas");
-
-  // busca
-  document.getElementById("buscaNorma")?.removeEventListener("input", filtrarDisponiveis);
-  document.getElementById("buscaNorma")?.addEventListener("input", filtrarDisponiveis);
-
-  // botões
-  document.getElementById("btnAddSelecionadas")?.onclick = moverParaEscolhidas;
-  document.getElementById("btnRemoverEscolhidas")?.onclick = deleteNormasEscolhidas;
-  document.getElementById("btnMoverCima")?.onclick = ()=>moverOrdemEscolhida("up");
-  document.getElementById("btnMoverBaixo")?.onclick = ()=>moverOrdemEscolhida("down");
-
-  // manter seus botões antigos
-  document.getElementById("btnAddNorma")?.onclick = addNormaCustom;
-  document.getElementById("btnDelNorma")?.onclick = deleteNormasEscolhidas;
-
-  // duplo clique move
-  disp?.addEventListener("dblclick", moverParaEscolhidas);
-  esc?.addEventListener("dblclick", moverParaDisponiveis);
+  if (!NormasUI.hasDual) return;
+  $("#buscaNorma")?.removeEventListener("input", filtrarDisponiveis);
+  $("#buscaNorma")?.addEventListener("input", filtrarDisponiveis);
+  $("#btnAddSelecionadas")?.onclick = moverParaEscolhidas;
+  $("#btnRemoverEscolhidas")?.onclick = delNormasSelecionadas;
+  $("#btnMoverCima")?.onclick = ()=>moverOrdemEscolhida("up");
+  $("#btnMoverBaixo")?.onclick = ()=>moverOrdemEscolhida("down");
+  $("#normasSelect")?.addEventListener("dblclick", moverParaEscolhidas);
+  $("#normasEscolhidas")?.addEventListener("dblclick", moverParaDisponiveis);
 }
-
-/* 🔄 Integração com seu form: 
-   - preencherForm já chama setNormasSelecionadas(r.normasReferencia)
-   - coletarForm deve ler getNormasSelecionadas()
-   Abaixo só garantimos que as duas funções existem e foram atualizadas.
-*/
-
-
-/*==================================================*/
-   
-
 
 /* =========================
    Form <-> Estado
@@ -426,7 +403,10 @@ function preencherForm(r){
   setNormasSelecionadas(r.normasReferencia||[]);
   f.objetivo.value=r.objetivo||"";
   f.discussao.value=r.discussao||"";
-  f.statusConclusao.value=r.conclusao?.status||"Conforme";
+  // radios de conclusão
+  const val = r.conclusao?.status || "Conforme";
+  const radio = document.querySelector(`input[name="statusConclusao"][value="${val}"]`);
+  if (radio) radio.checked = true;
   f.conclusaoObs.value=r.conclusao?.observacoes||"";
   f.anexosCertificados.value=(r.anexos?.certificados||[]).join("; ");
   f.anexosPlanilhas.value=(r.anexos?.planilhas||[]).join("; ");
@@ -472,6 +452,8 @@ function preencherForm(r){
 
 function coletarForm(){
   const f=$("#formRelatorio");
+  // status de conclusão pelo radio
+  const statusRad = document.querySelector('input[name="statusConclusao"]:checked')?.value || "Conforme";
   return {
     id:f.id.value||uid(),
     numeroRelatorio:f.numeroRelatorio.value.trim(),
@@ -505,7 +487,7 @@ function coletarForm(){
     })),
 
     discussao:f.discussao.value.trim(),
-    conclusao:{ status:f.statusConclusao.value, observacoes:f.conclusaoObs.value.trim() },
+    conclusao:{ status: statusRad, observacoes:f.conclusaoObs.value.trim() },
 
     anexos:{
       certificados:splitList(f.anexosCertificados.value),
@@ -804,7 +786,7 @@ async function gerarPDF(){
   if (!ativos.length) {
     paragraph("Nenhum método marcado como aplicado.");
   } else {
-    ativos.forEach((m, idx) => {
+    ativos.forEach((m) => {
       ensureSpace(60);
       doc.setFont("helvetica","bold"); doc.setTextColor(THEME.ink);
       doc.text(`• ${m.metodo || "-"}`, MARGIN_X, y); y += 12;
@@ -984,7 +966,6 @@ const MetGrid = {
     if(this.editId){
       const i = this.state.findIndex(m=>m.id===this.editId);
       if(i>=0){
-        // impedir duplicata ao renomear
         if (this.state.some((m,ix)=>ix!==i && m.metodo.toLowerCase()===v.metodo.toLowerCase())){
           toast("Já existe um método com essa descrição.","error"); return;
         }
@@ -1055,7 +1036,6 @@ const MetGrid = {
       </tr>
     `).join("");
 
-    // micro anima em todas as linhas
     $$("#tblMetodos tbody tr").forEach((tr,i)=> Anim.fadeIn(tr,100+(i*10),4));
     if(scrollToEnd){ tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight; }
   }
@@ -1083,10 +1063,6 @@ function initMetodosGrid(){
     MetGrid.toggleAplicado(cb.getAttribute("data-id"), cb.checked);
   });
 }
-
-/* =========================
-   PDF (layout HTML) – já acima
-   ========================= */
 
 /* =========================
    Utilidades diversas
