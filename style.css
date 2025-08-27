@@ -786,3 +786,12 @@ select:focus {
 @media (max-width:480px){
   .tabela thead th, .tabela td{ padding:8px; }
 }
+/* Normas: dá altura consistente e rolagem suave */
+#normasSelect, #normasEscolhidas{
+  min-height: 240px;
+  -webkit-overflow-scrolling: touch;
+}
+#buscaNorma{
+  padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#fff; outline:none;
+}
+#buscaNorma:focus{ box-shadow: var(--ring); border-color:#FFCDD0 }
