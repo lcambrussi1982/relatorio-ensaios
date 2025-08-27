@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="pt-br">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,20 +7,17 @@
 
   <!-- Bibliotecas para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 
   <link rel="stylesheet" href="style.css" />
   <meta name="color-scheme" content="light only">
   <meta name="theme-color" content="#E1262D">
 </head>
-
 <body>
   <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- TOPBAR -->
-<header class="topbar" role="banner">
-  <div class="topbar-inner"><!-- wrapper responsivo e seguro -->
+  <header class="topbar" role="banner">
     <div class="brand" aria-label="Shiva Conexoes">
       <img src="chiva.png" alt="Shiva Plásticos" />
       <div class="brand-text">
@@ -43,8 +39,7 @@
       </label>
       <button id="btnImprimir" type="button" title="Impressão do layout (sistema do navegador)">Imprimir</button>
     </div>
-  </div>
-</header>
+  </header>
 
   <main class="layout" id="app" role="main">
     <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
@@ -82,51 +77,54 @@
             </label>
           </div>
 
+          <!-- 1.a Normas de referência — DUAL SELECTOR COM BUSCA -->
+          <div class="combo" role="group" aria-label="Normas de referência">
+            <label class="small" for="buscaNorma">Normas de referência</label>
+            <div class="combo-grid">
+              <!-- Coluna esquerda: busca + disponíveis -->
+              <div>
+                <input id="buscaNorma" type="search" placeholder="Pesquisar norma (ex.: ABNT, ISO, EN...)"
+                       aria-label="Buscar normas disponíveis" />
+                <select id="normasSelect" multiple size="10" aria-label="Normas disponíveis para seleção">
+                  <!-- opções iniciais visíveis para já permitir pesquisa antes do JS carregar -->
+                  <option>ABNT NBR 5648:2018</option>
+                  <option>ABNT NBR 8219</option>
+                  <option>ABNT NBR NM 82</option>
+                  <option>EN 62321-3-1:2014</option>
+                  <option>ABNT NBR NM 84</option>
+                  <option>ABNT NBR 8218</option>
+                  <option>ABNT NBR 14264</option>
+                  <option>ABNT NBR 7371</option>
+                </select>
+                <div class="inline" style="margin-top:8px">
+                  <button type="button" id="btnAddSelecionadas" class="secundario" title="Adicionar selecionadas à lista da direita">Adicionar ➜</button>
+                </div>
+              </div>
 
+              <!-- Coluna direita: escolhidas (entram no relatório) -->
+              <div>
+                <label class="small" for="normasEscolhidas">Selecionadas (estas aparecerão no relatório)</label>
+                <select id="normasEscolhidas" multiple size="10" aria-label="Normas selecionadas"></select>
+                <div class="inline" style="margin-top:8px; gap:8px">
+                  <button type="button" id="btnRemoverEscolhidas" class="secundario danger" title="Remover da lista de selecionadas">Remover</button>
+                  <button type="button" id="btnMoverCima" class="secundario" title="Mover para cima">↑</button>
+                  <button type="button" id="btnMoverBaixo" class="secundario" title="Mover para baixo">↓</button>
+                </div>
+                <p class="hint">Dica: use Ctrl/Cmd para selecionar múltiplas normas. Dê dois cliques numa norma para mover entre as listas.</p>
+              </div>
+            </div>
 
-
-
-          <!-- Combo de Normas de Referência -->
-          <!-- Combo de Normas de Referência (com busca e lista selecionada) -->
-<div class="combo">
-  <label for="normasSelect">Normas de referência</label>
-
-  <div class="combo-grid">
-    <!-- Coluna esquerda: BUSCA + disponíveis -->
-    <div>
-      <input id="buscaNorma" type="search" placeholder="Buscar normas..." aria-label="Buscar normas de referência" style="margin-bottom:8px">
-      <select id="normasSelect" multiple size="8" aria-describedby="normaHelp" style="width:100%"></select>
-      <div class="inline" style="gap:8px;margin-top:8px">
-        <button type="button" id="btnAddSelecionadas" class="secundario" title="Adicionar selecionadas →">Adicionar →</button>
-      </div>
-    </div>
-
-    <!-- Coluna direita: SELECIONADAS (estas vão para o relatório) -->
-    <div>
-      <label class="small" for="normasEscolhidas" style="margin-bottom:6px">Selecionadas (serão exibidas no relatório)</label>
-      <select id="normasEscolhidas" multiple size="8" style="width:100%"></select>
-      <div class="inline" style="gap:8px;margin-top:8px">
-        <button type="button" id="btnRemoverEscolhidas" class="secundario danger" title="← Remover selecionadas">← Remover</button>
-        <button type="button" id="btnMoverCima" class="secundario" title="Mover para cima">↑</button>
-        <button type="button" id="btnMoverBaixo" class="secundario" title="Mover para baixo">↓</button>
-      </div>
-
-      <div class="addbox" style="margin-top:12px">
-        <label for="novaNorma" class="small">Incluir norma personalizada</label>
-        <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
-        <div class="inline">
-          <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
-          <button type="button" id="btnDelNorma" class="secundario danger">Excluir selecionada</button>
-        </div>
-      </div>
-
-      <p id="normaHelp" class="hint" style="margin-top:8px">
-        Dica: duplo-clique para mover entre as listas. Use ↑/↓ para ordenar as selecionadas.
-      </p>
-    </div>
-  </div>
-</div>
-
+            <!-- Adição rápida de norma personalizada -->
+            <div class="addbox" style="margin-top:10px">
+              <label class="small" for="novaNorma">Adicionar norma personalizada</label>
+              <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
+              <div class="inline">
+                <button type="button" id="btnAddNorma" class="secundario" title="Adicionar e selecionar">Adicionar</button>
+                <button type="button" id="btnDelNorma" class="secundario danger" title="Excluir selecionadas da lista da direita">Excluir selecionada</button>
+              </div>
+              <p class="hint">As normas adicionadas aqui ficam disponíveis para outros relatórios neste navegador.</p>
+            </div>
+          </div>
         </fieldset>
 
         <!-- 2. Amostras -->
@@ -145,122 +143,74 @@
 
         <!-- 4. Métodos -->
         <legend>4. Métodos e Materiais Empregados</legend>
-<p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong> para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
+        <p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong> para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
 
-<!-- Formulário de inclusão/edição rápida -->
-<div class="grid" style="margin-bottom:12px">
-  <label>Método / Descrição
-    <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
-  </label>
+        <!-- Formulário de inclusão/edição rápida -->
+        <div class="grid" style="margin-bottom:12px">
+          <label>Método / Descrição
+            <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
+          </label>
 
-  <label>Norma / Referência
-    <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
-  </label>
+          <label>Norma / Referência
+            <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
+          </label>
 
-  <label>Equipamento
-    <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
-  </label>
+          <label>Equipamento
+            <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
+          </label>
 
-  <label>Materiais
-    <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
-  </label>
+          <label>Materiais
+            <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
+          </label>
 
-  <label>Procedimento (resumo)
-    <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
-  </label>
+          <label>Procedimento (resumo)
+            <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
+          </label>
 
-  <label>Critério / Requisito
-    <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
-  </label>
+          <label>Critério / Requisito
+            <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
+          </label>
 
-  <label>Unidade
-    <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
-  </label>
+          <label>Unidade
+            <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
+          </label>
 
-  <label class="inline" style="align-items:flex-end">
-    <input type="checkbox" id="metAplicado" />
-    <span>Aplicado?</span>
-  </label>
-</div>
+          <label class="inline" style="align-items:flex-end">
+            <input type="checkbox" id="metAplicado" />
+            <span>Aplicado?</span>
+          </label>
+        </div>
 
-<div class="inline" style="gap:8px; margin-bottom:10px">
-  <button type="button" id="btnAddMetodo" class="secundario">Incluir</button>
-  <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
-</div>
+        <div class="inline" style="gap:8px; margin-bottom:10px">
+          <button type="button" id="btnAddMetodo" class="secundario">Incluir</button>
+          <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
+        </div>
 
-<!-- Grade (tabela) -->
-<fieldset>
-  <legend>4. Métodos e Materiais Empregados</legend>
-  <p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong> para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
+        <!-- Grade (tabela) -->
+        <div class="tabela-wrap">
+          <table class="tabela" id="tblMetodos">
+            <thead>
+              <tr>
+                <th style="min-width:220px">Método / Descrição</th>
+                <th>Norma</th>
+                <th>Equipamento</th>
+                <th>Materiais</th>
+                <th>Procedimento</th>
+                <th>Critério</th>
+                <th>Unid.</th>
+                <th>Aplic.</th>
+                <th aria-label="Ações" style="min-width:140px">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- linhas geradas via JS -->
+            </tbody>
+          </table>
+        </div>
 
-  <!-- Formulário de inclusão/edição rápida -->
-  <div class="grid" style="margin-bottom:12px">
-    <label>Método / Descrição
-      <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
-    </label>
-
-    <label>Norma / Referência
-      <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
-    </label>
-
-    <label>Equipamento
-      <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
-    </label>
-
-    <label>Materiais
-      <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
-    </label>
-
-    <label>Procedimento (resumo)
-      <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
-    </label>
-
-    <label>Critério / Requisito
-      <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
-    </label>
-
-    <label>Unidade
-      <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
-    </label>
-
-    <label class="inline" style="align-items:flex-end">
-      <input type="checkbox" id="metAplicado" />
-      <span>Aplicado?</span>
-    </label>
-  </div>
-
-  <div class="inline" style="gap:8px; margin-bottom:10px">
-    <button type="button" id="btnAddMetodo" class="secundario">Incluir</button>
-    <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
-  </div>
-
-  <!-- Grade (tabela) -->
-  <div class="tabela-wrap">
-    <table class="tabela" id="tblMetodos">
-      <thead>
-        <tr>
-          <th style="min-width:220px">Método / Descrição</th>
-          <th>Norma</th>
-          <th>Equipamento</th>
-          <th>Materiais</th>
-          <th>Procedimento</th>
-          <th>Critério</th>
-          <th>Unid.</th>
-          <th>Aplic.</th>
-          <th aria-label="Ações" style="min-width:140px">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- linhas geradas via JS -->
-      </tbody>
-    </table>
-  </div>
-
-  <p class="hint" style="margin-top:10px">
-    Dica: use descrições objetivas; detalhes extensos podem ir para anexos. Na impressão/PDF este cadastro pode ser ocultado com a classe <code>no-print</code> no fieldset.
-  </p>
-</fieldset>
-
+        <p class="hint" style="margin-top:10px">
+          Dica: use descrições objetivas; detalhes extensos podem ir para anexos. Na impressão/PDF este cadastro pode ser ocultado com a classe <code>no-print</code> no fieldset.
+        </p>
 
         <!-- 5. Resultados -->
         <fieldset>
@@ -341,32 +291,8 @@
     <small>© <span id="ano"></span> Shiva Plásticos — Relatórios digitais.</small>
   </footer>
 
-  <!-- VLibras -->
-  <div vw class="enabled">
-    <div vw-access-button class="active"></div>
-    <div vw-plugin-wrapper>
-      <div class="vw-plugin-top-wrapper"></div>
-    </div>
-  </div>
-  <script>
-    (function initVLibras() {
-      function start() {
-        try { new window.VLibras.Widget('https://vlibras.gov.br/app'); }
-        catch (e) { console.error('VLibras init erro:', e); }
-      }
-      if (window.VLibras && window.VLibras.Widget) { start(); }
-      else {
-        var s = document.createElement('script');
-        s.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
-        s.defer = true;
-        s.onload = start;
-        document.head.appendChild(s);
-      }
-    })();
-  </script>
 
-
+  <!-- Seu JS (versão revisada que te enviei) -->
   <script src="script.js" defer></script>
 </body>
-
 </html>
