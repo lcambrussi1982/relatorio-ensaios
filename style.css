@@ -1,38 +1,35 @@
+/* =========================================================
+   Shiva/Chiva — UI base + Responsividade
+   ========================================================= */
 :root {
-  /* Paleta Chiva (60-30-10) */
+  /* Cores */
   --bg: #FAFBFF;
-  /* base clara */
   --panel: #DFF3FF;
-  /* azul-claro */
   --card: #FFFFFF;
-  /* cartões */
   --ink: #0F1E3D;
-  /* texto principal (azul marinho) */
   --muted: #5C6B84;
-  /* texto secundário */
   --border: #E2E8F0;
-  /* bordas */
-
   --brand: #E1262D;
-  /* vermelho Chiva */
   --brand-hover: #C81F25;
   --sea: #0077B6;
-  /* azul da onda */
   --sea-weak: #E6F7FF;
-  /* azul leve */
-
   --success: #22C55E;
   --danger: #E11D48;
 
+  /* Efeitos */
   --ring: 0 0 0 4px rgba(225, 38, 45, .18);
   --shadow: 0 8px 24px rgba(15, 30, 61, .08);
 
-  --fs-base: clamp(14px, 1.7vw, 16px);
-  --fs-sm: clamp(12px, 1.3vw, 14px);
+  /* Tipografia */
+  --fs-base: clamp(14px, 1.6vw, 16px);
+  --fs-sm: clamp(12px, 1.2vw, 14px);
   --fs-lg: clamp(18px, 2.2vw, 22px);
+
+  /* Layout */
+  --container: 1120px;
 }
 
-/* Reset básico */
+/* Reset / base */
 * {
   box-sizing: border-box
 }
@@ -44,12 +41,11 @@ body {
 
 body {
   margin: 0;
-  font: var(--fs-base)/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu;
   color: var(--ink);
+  font: var(--fs-base)/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu;
   background: linear-gradient(180deg, var(--panel) 0, var(--bg) 220px);
 }
 
-/* Acessibilidade */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -59,7 +55,7 @@ body {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0;
+  border: 0
 }
 
 .sr-only-focusable:focus {
@@ -69,33 +65,49 @@ body {
   margin: 0;
   overflow: visible;
   clip: auto;
-  white-space: normal;
+  white-space: normal
 }
 
-/* Topbar */
+/* =========================================================
+   Topbar (responsiva)
+   ========================================================= */
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 10px 18px;
   background: #0F1E3D;
-  /* azul marinho do tema */
   border-bottom: 2px solid var(--brand);
   box-shadow: var(--shadow);
+  max-width: 100%;
+  width: 100%;
+}
+
+.topbar-inner {
+  /* evita esticar em telas largas e dá wrap bonito */
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px
+  gap: 12px;
+  min-width: 0
 }
 
 .brand img {
-  height: 75px;
+  height: 64px;
   width: auto;
   display: block
 }
@@ -103,13 +115,17 @@ body {
 .brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.1
+  line-height: 1.1;
+  min-width: 0
 }
 
 .brand-title {
   font-size: 18px;
   font-weight: 800;
-  color: #fff
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis
 }
 
 .brand-sub {
@@ -169,15 +185,22 @@ button.danger:hover {
   background: #b91c1c
 }
 
-/* Layout */
+/* =========================================================
+   Layout principal
+   ========================================================= */
 .layout {
+  width: 100%;
+  max-width: var(--container);
+  margin: 14px auto;
+  padding: 0 12px;
   display: grid;
   grid-template-columns: 300px 1fr;
-  min-height: calc(100vh - 70px)
+  gap: 16px;
+  min-height: calc(100vh - 90px);
 }
 
 .conteudo {
-  padding: 22px
+  padding: 0
 }
 
 body.aside-collapsed .layout {
@@ -191,14 +214,17 @@ body.aside-collapsed .lista-relatorios {
 /* Sidebar */
 .lista-relatorios {
   background: var(--panel);
-  border-right: 1px solid var(--border);
-  padding: 16px
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  height: max-content;
 }
 
 .aside-head {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
+  gap: 10px;
   margin-bottom: 14px
 }
 
@@ -211,12 +237,15 @@ body.aside-collapsed .lista-relatorios {
 }
 
 #filtroLista {
-  flex: 1;
+  width: 100%;
+  height: 40px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #fff;
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 #filtroLista:focus {
@@ -230,7 +259,7 @@ body.aside-collapsed .lista-relatorios {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 10px
 }
 
 #listaRelatorios li {
@@ -254,7 +283,9 @@ body.aside-collapsed .lista-relatorios {
   margin-top: 4px
 }
 
-/* Formulários */
+/* =========================================================
+   Formulários
+   ========================================================= */
 form fieldset {
   border: 1px solid var(--border);
   background: #fff;
@@ -341,10 +372,13 @@ select:focus {
   margin-bottom: 8px
 }
 
-/* Tabelas / Grade */
+/* =========================================================
+   Tabelas / grades
+   ========================================================= */
 .tabela-wrap {
   width: 100%;
-  overflow: auto
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabela {
@@ -355,6 +389,8 @@ select:focus {
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
+  min-width: 720px;
+  /* garante scroll em telas pequenas */
 }
 
 .tabela thead th {
@@ -383,7 +419,6 @@ select:focus {
   border-bottom: none
 }
 
-/* Botões mini (Ações da grade) */
 .btn-mini {
   padding: 6px 10px;
   border-radius: 10px;
@@ -415,40 +450,210 @@ select:focus {
   border-top: 1px solid var(--border);
   background: #fff;
   text-align: center;
-  color: var(--muted);
+  color: var(--muted)
 }
 
-/* VLibras sempre visível por cima */
+/* VLibras por cima */
 [vw],
 [vw] *,
 [vw-plugin-wrapper] {
   z-index: 2147483647 !important
 }
 
-/* Responsividade */
-@media (max-width:980px) {
-  .combo-grid {
-    grid-template-columns: 1fr
+/* =========================================================
+   Responsividade
+   ========================================================= */
+
+/* >=1025 e <=1280: pequenas reduções */
+@media (max-width:1280px) {
+  :root {
+    --container: 1040px
+  }
+
+  .brand img {
+    height: 60px
   }
 }
 
-@media (max-width:860px) {
+/* <=1024: topbar pode quebrar; ações ocupam a largura */
+@media (max-width:1024px) {
+  :root {
+    --container: 920px
+  }
+
+  .topbar {
+    padding: 10px 14px
+  }
+
+  .topbar-inner {
+    gap: 12px
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px
+  }
+
+  .actions>* {
+    flex: 1 1 auto;
+    min-width: 140px
+  }
+
+  .brand img {
+    height: 56px
+  }
+}
+
+/* <=900: some sidebar, conteúdo em foco, campos compactos */
+@media (max-width:900px) {
+  :root {
+    --container: 100%
+  }
+
   .layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 10px
+  }
+
+  .lista-relatorios {
+    display: none
+  }
+
+  form fieldset {
+    padding: 14px;
+    border-radius: 14px
+  }
+
+  .grid {
+    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))
+  }
+
+  input,
+  textarea,
+  select {
+    padding: 10px;
+    border-radius: 10px
+  }
+}
+
+/* <=768: cabeçalho empilha (logo em cima, botões abaixo) */
+@media (max-width:768px) {
+  .topbar-inner {
+    width: 100%;
+    max-width: var(--container);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch
+  }
+
+  .brand {
+    justify-content: center
+  }
+
+  .brand-text {
+    text-align: center
+  }
+
+  .actions {
+    width: 100%
+  }
+
+  .actions>* {
+    flex: 1 1 48%;
+    min-width: 140px
+  }
+
+  /* 2 colunas */
+  .tabela thead th,
+  .tabela td {
+    padding: 9px
+  }
+}
+
+/* <=640: uma coluna, botões em stack, logo menor */
+@media (max-width:640px) {
+  .brand img {
+    height: 44px
+  }
+
+  .brand-text {
+    display: none
+  }
+
+  .actions {
+    gap: 8px
+  }
+
+  .actions>* {
+    flex: 1 1 100%;
+    min-width: 100%
+  }
+
+  /* botões 100% */
+  .grid {
     grid-template-columns: 1fr
+  }
+
+  .tabela {
+    min-width: 640px
+  }
+
+  body {
+    padding-bottom: 56px
+  }
+
+  /* calço pro botão VLibras */
+}
+
+/* <=520: título da marca já está oculto acima; apenas finos */
+@media (max-width:520px) {
+  .aside-head {
+    grid-template-columns: 1fr
+  }
+
+  .aside-head h2 {
+    margin-bottom: 6px
+  }
+
+  #filtroLista {
+    height: 38px
+  }
+}
+
+/* <=480: micro ajustes */
+@media (max-width:480px) {
+  .topbar {
+    padding: 8px 10px
   }
 
   .brand img {
     height: 40px
   }
-}
 
-@media (max-width:520px) {
-  .brand-text {
-    display: none
+  button,
+  .import {
+    padding: 8px 10px;
+    border-radius: 10px
+  }
+
+  .btn-mini {
+    padding: 5px 8px;
+    border-radius: 8px
+  }
+
+  .tabela thead th,
+  .tabela td {
+    padding: 8px
   }
 }
 
-/* Impressão: esconder elementos de UI/CRUD e limpar cores */
+/* =========================================================
+   Impressão (limpa UI e cores)
+   ========================================================= */
 @media print {
 
   .topbar,
@@ -462,7 +667,7 @@ select:focus {
     display: none !important
   }
 
-  /* Esconde todo o CRUD de métodos (fieldset 4 em grade) */
+  /* ocultar CRUD de métodos na impressão */
   #tblMetodos,
   #btnAddMetodo,
   #btnLimparMetodo,
@@ -474,7 +679,7 @@ select:focus {
   #metCriterio,
   #metUnidade,
   #metAplicado {
-    display: none !important;
+    display: none !important
   }
 
   body {
@@ -499,203 +704,8 @@ select:focus {
   legend {
     color: #000
   }
-}
 
-/* =========================================================
-   🔧 Melhorias de responsividade (drop-in overrides)
-   Cole no FINAL do arquivo
-   ========================================================= */
-
-/* Breakpoints utilitários */
-@media (max-width: 1280px) {
-  :root {
-    --fs-base: clamp(14px, 1.6vw, 16px);
-    --fs-sm: clamp(12px, 1.2vw, 14px);
-  }
-}
-
-/* ➊ Topbar mais flexível: quebra em 2 linhas quando preciso */
-@media (max-width: 1024px) {
-  .topbar {
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 14px;
-  }
-  .brand img { height: 56px; }
-  .actions {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 6px;
-  }
-  .actions > * {
-    flex: 1 1 auto;          /* botões ocupam a linha */
-    min-width: 120px;
-  }
-}
-
-/* ➋ Sidebar: esconde em telas médias/pequenas por padrão */
-@media (max-width: 980px) {
-  .layout { grid-template-columns: 1fr; }
-  .lista-relatorios { display: none; }
-  /* o botão "☰ Lista" segue funcionando para alternar via JS (classe .aside-collapsed) */
-}
-
-/* ➌ Conteúdo: pads menores, grid mais “elástico” */
-@media (max-width: 900px) {
-  .conteudo { padding: 16px; }
-  .grid { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-  form fieldset { padding: 14px; border-radius: 14px; }
-  legend { padding: 0 8px; }
-  input, textarea, select { padding: 10px; border-radius: 10px; }
-}
-
-/* ➍ Ações/controles: botões mais compactos */
-@media (max-width: 780px) {
-  button, .import {
-    padding: 8px 10px;
-    border-radius: 10px;
-    font-weight: 600;
-  }
-  .btn-mini { padding: 5px 8px; border-radius: 8px; }
-  .brand img { height: 44px; }
-}
-
-/* ➎ Tabelas: rolagem melhor e células mais “respiráveis” no mobile */
-@media (max-width: 720px) {
-  .tabela-wrap {
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-  }
   .tabela {
-    min-width: 720px;      /* garante rolagem horizontal em telas menores */
-  }
-  .tabela td, .tabela thead th {
-    padding: 8px;
-  }
-  .tabela thead th { font-size: var(--fs-sm); }
-}
-
-/* ➏ Campos longos (normas/equip/proced) ocupam linha inteira em telas pequenas */
-@media (max-width: 640px) {
-  .grid {
-    grid-template-columns: 1fr; /* 1 coluna */
-  }
-  .actions > * { min-width: 46%; } /* dois botões por linha na maioria dos casos */
-  .brand-text { display: none; }   /* foca na logo para ganhar espaço */
-}
-
-/* ➐ Microajustes muito pequenos (<= 400px) */
-@media (max-width: 400px) {
-  .topbar { padding: 8px 10px; }
-  .actions > * { min-width: 100%; } /* um botão por linha */
-  .brand img { height: 38px; }
-  form fieldset { padding: 12px; }
-  input, textarea, select { padding: 8px; }
-}
-
-/* ➑ Espaço pro VLibras no mobile (evita sobrepor botões flutuantes) */
-@media (max-width: 640px) {
-  body { padding-bottom: 56px; } /* “calço” para o botão do VLibras */
-}
-
-/* ➒ Preferência de contraste/zoom: evita quebra feia quando usuário aumenta fontes */
-@media (max-width: 980px) {
-  html { word-break: break-word; }
-  .tabela { word-break: normal; } /* preserva células de tabela */
-}
-
-/* ➓ Print já está OK; aqui só reduzimos a min-width da tabela em print estreito */
-@media print and (max-width: 720px) {
-  .tabela { min-width: auto; }
-}
-/* Responsividade do cabeçalho */
-@media (max-width: 768px) {
-  .topbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .brand {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .brand img {
-    height: 50px;
-  }
-
-  .actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 6px;
-  }
-
-  .actions button,
-  .actions .import {
-    flex: 1 1 auto; /* cada botão cresce igualmente */
-    min-width: 120px;
-  }
-}
-
-@media (max-width: 480px) {
-  .brand img {
-    height: 40px;
-  }
-
-  .brand-text {
-    display: none; /* some em telas bem pequenas */
-  }
-
-  .actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .actions button,
-  .actions .import {
-    width: 100%;
-  }
-}
-
-/* ========= Fix alinhamento do campo "Buscar..." na sidebar ========= */
-
-/* Usa grid para alinhar título e input na mesma linha e altura */
-.lista-relatorios .aside-head{
-  display:grid;
-  grid-template-columns: auto 1fr; /* h2 | input ocupa o resto */
-  align-items:center;              /* alinha verticalmente */
-  gap:10px;
-  padding-bottom:4px;              /* microcompensação visual */
-}
-
-/* Garante que o input ocupe toda a coluna e tenha altura consistente */
-#filtroLista{
-  width:100%;
-  height:40px;          /* altura fixa pra não “dançar” */
-  line-height:1;        /* evita alongar por tipografia */
-  padding:10px 12px;    /* já existia; mantém */
-  -webkit-appearance:none; /* corrige variações do <input type=search> */
-  appearance:none;
-}
-
-/* Evita que o h2 “puxe” o baseline; já sem margin por padrão, mas garantimos */
-.aside-head h2{
-  margin:0;
-  line-height:1.1;
-  align-self:center;
-}
-
-/* Em telas menores, põe o input abaixo do título, alinhado e com largura total */
-@media (max-width: 680px){
-  .lista-relatorios .aside-head{
-    grid-template-columns: 1fr; /* empilha */
-  }
-  .aside-head h2{
-    margin-bottom:6px;
-  }
-  #filtroLista{
-    height:38px; /* um pouco mais compacto no mobile */
+    min-width: auto
   }
 }
