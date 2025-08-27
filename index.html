@@ -87,25 +87,46 @@
 
 
           <!-- Combo de Normas de Referência -->
-          <div class="combo">
-            <label for="normasSelect">Normas de referência (selecione 1+)</label>
-            <div class="combo-grid">
-              <select id="normasSelect" multiple size="6" aria-describedby="normaHelp"></select>
-              <div class="addbox">
-                <label for="novaNorma" class="small">Gerenciar normas</label>
-                <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
-                <div class="inline">
-                  <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
-                  <button type="button" id="btnDelNorma" class="secundario danger">Excluir selecionada</button>
-                </div>
-                <p id="normaHelp" class="hint">
-                  Use Ctrl/Cmd para selecionar múltiplas normas.<br>
-                  Você pode incluir novas normas pelo campo ou excluir as selecionadas.
-                </p>
-              </div>
+          <!-- Combo de Normas de Referência (com busca e lista selecionada) -->
+<div class="combo">
+  <label for="normasSelect">Normas de referência</label>
 
-            </div>
-          </div>
+  <div class="combo-grid">
+    <!-- Coluna esquerda: BUSCA + disponíveis -->
+    <div>
+      <input id="buscaNorma" type="search" placeholder="Buscar normas..." aria-label="Buscar normas de referência" style="margin-bottom:8px">
+      <select id="normasSelect" multiple size="8" aria-describedby="normaHelp" style="width:100%"></select>
+      <div class="inline" style="gap:8px;margin-top:8px">
+        <button type="button" id="btnAddSelecionadas" class="secundario" title="Adicionar selecionadas →">Adicionar →</button>
+      </div>
+    </div>
+
+    <!-- Coluna direita: SELECIONADAS (estas vão para o relatório) -->
+    <div>
+      <label class="small" for="normasEscolhidas" style="margin-bottom:6px">Selecionadas (serão exibidas no relatório)</label>
+      <select id="normasEscolhidas" multiple size="8" style="width:100%"></select>
+      <div class="inline" style="gap:8px;margin-top:8px">
+        <button type="button" id="btnRemoverEscolhidas" class="secundario danger" title="← Remover selecionadas">← Remover</button>
+        <button type="button" id="btnMoverCima" class="secundario" title="Mover para cima">↑</button>
+        <button type="button" id="btnMoverBaixo" class="secundario" title="Mover para baixo">↓</button>
+      </div>
+
+      <div class="addbox" style="margin-top:12px">
+        <label for="novaNorma" class="small">Incluir norma personalizada</label>
+        <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
+        <div class="inline">
+          <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
+          <button type="button" id="btnDelNorma" class="secundario danger">Excluir selecionada</button>
+        </div>
+      </div>
+
+      <p id="normaHelp" class="hint" style="margin-top:8px">
+        Dica: duplo-clique para mover entre as listas. Use ↑/↓ para ordenar as selecionadas.
+      </p>
+    </div>
+  </div>
+</div>
+
         </fieldset>
 
         <!-- 2. Amostras -->
