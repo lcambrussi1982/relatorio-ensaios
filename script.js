@@ -411,54 +411,7 @@ function ligaEventosNormas(){
 
 /*==================================================*/
    
-function montarNormasSelect(){
-  const sel = $("#normasSelect");
-  sel.innerHTML = "";
-  NORMAS_OPCOES.forEach(n=>{
-    const opt = el("option",{value:n},n);
-    sel.appendChild(opt);
-  });
-}
-function setNormasSelecionadas(valores=[]){
-  const sel = $("#normasSelect"); const set = new Set(valores);
-  $$("option", sel).forEach(o => o.selected = set.has(o.value));
-}
-function getNormasSelecionadas(){
-  return Array.from($("#normasSelect").selectedOptions).map(o=>o.value);
-}
-function addNormaCustom(){
-  const inp = $("#novaNorma");
-  const valor = (inp.value||"").trim();
-  if(!valor) return;
-  const sel = $("#normasSelect");
-  let opt = Array.from(sel.options).find(o=>o.value.toLowerCase()===valor.toLowerCase());
-  if(!opt){
-    opt = el("option",{value:valor},valor);
-    sel.appendChild(opt);
-    Anim.flash(sel);
-  }
-  opt.selected = true;
-  inp.value = "";
-  toast("Norma adicionada/selecionada", "success");
-}
-function delNormasSelecionadas(){
-  const sel = $("#normasSelect");
-  const selecionados = Array.from(sel.selectedOptions);
-  if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
 
-  const nomes = selecionados.map(o=>o.text).join("\n- ");
-  const ok = confirm(`Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`);
-  if(!ok) return;
-
-  // animação de saída e remoção
-  (async ()=>{
-    for(const opt of selecionados){
-      await Anim.fadeOut(opt,120,2);
-      opt.remove();
-    }
-    toast("Normas removidas");
-  })();
-}
 
 /* =========================
    Form <-> Estado
