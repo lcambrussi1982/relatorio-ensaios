@@ -188,6 +188,229 @@ function salvarAtual(){
 /* =========================
    Normas: combo
    ========================= */
+
+/* ======= Normas: duplo seletor com busca ======= */
+function montarNormasSelect() {
+  // monta as listas baseado no catálogo + estado atual do relatório
+  const selectDisponiveis = document.getElementById("normasSelect");
+  const selectEscolhidas  = document.getElementById("normasEscolhidas");
+  const busca             = document.getElementById("buscaNorma");
+
+  // Limpa
+  selectDisponiveis.innerHTML = "";
+  // Catálogo único (catálogo default + itens já escolhidos que não existam no catálogo)
+  const escolhidas = (atual?.normasReferencia || []);
+  const catalogo = Array.from(new Set([...NORMAS_OPCOES, ...escolhidas]));
+
+  // Preenche disponíveis (não duplicar as já escolhidas)
+  catalogo
+    .filter(n => !escolhidas.includes(n))
+    .sort((a,b)=>a.localeCompare(b))
+    .forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n; opt.textContent = n;
+      selectDisponiveis.appendChild(opt);
+    });
+
+  // Preenche escolhidas na ordem salva
+  selectEscolhidas.innerHTML = "";
+  escolhidas.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = n; opt.textContent = n;
+    selectEscolhidas.appendChild(opt);
+  });
+
+  // (Re)liga eventos
+  ligaEventosNormas();
+
+  // Reseta busca
+  if (busca) busca.value = "";
+}
+
+// retorna array com as normas que estão na lista "selecionadas"
+function getNormasSelecionadas(){
+  return Array.from(document.querySelectorAll("#normasEscolhidas option")).map(o => o.value);
+}
+
+// marca selecionadas a partir de um array (usado em preencherForm)
+function setNormasSelecionadas(valores = []){
+  const selectEscolhidas  = document.getElementById("normasEscolhidas");
+  selectEscolhidas.innerHTML = "";
+  valores.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = n; opt.textContent = n;
+    selectEscolhidas.appendChild(opt);
+  });
+  // reconstruir disponíveis também (para não duplicar)
+  const selectDisponiveis = document.getElementById("normasSelect");
+  selectDisponiveis.innerHTML = "";
+  const catalogo = Array.from(new Set([...NORMAS_OPCOES, ...valores]));
+  catalogo
+    .filter(n => !valores.includes(n))
+    .sort((a,b)=>a.localeCompare(b))
+    .forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n; opt.textContent = n;
+      selectDisponiveis.appendChild(opt);
+    });
+}
+
+// adiciona norma personalizada
+function addNormaCustom(){
+  const inp = document.getElementById("novaNorma");
+  const val = (inp.value || "").trim();
+  if(!val) return;
+
+  // se já está nas escolhidas, apenas limpa o campo
+  const jaTem = getNormasSelecionadas().some(n => n.toLowerCase() === val.toLowerCase());
+  if (jaTem) { inp.value = ""; return; }
+
+  // adiciona em "escolhidas"
+  const selectEscolhidas = document.getElementById("normasEscolhidas");
+  const opt = document.createElement("option");
+  opt.value = val; opt.textContent = val;
+  selectEscolhidas.appendChild(opt);
+
+  // se não existia no catálogo, inclui para futuras telas
+  if (!NORMAS_OPCOES.some(n => n.toLowerCase() === val.toLowerCase())){
+    NORMAS_OPCOES.push(val);
+  }
+
+  // remove dos disponíveis, se estiver
+  const selectDisponiveis = document.getElementById("normasSelect");
+  Array.from(selectDisponiveis.options).forEach(o => {
+    if (o.value.toLowerCase() === val.toLowerCase()) o.remove();
+  });
+
+  inp.value = "";
+}
+
+// excluir norma das ESCOLHIDAS (lado direito) com confirmação
+function deleteNormasEscolhidas(){
+  const sel = document.getElementById("normasEscolhidas");
+  const selecionados = Array.from(sel.selectedOptions);
+  if(!selecionados.length){ alert("Selecione pelo menos uma norma para remover."); return; }
+
+  const nomes = selecionados.map(o=>o.textContent).join("\n- ");
+  if(!confirm(`Você tem certeza que deseja remover as seguintes norma(s) da seleção?\n\n- ${nomes}`)) return;
+
+  // move de volta para disponíveis (ordenado)
+  const disp = document.getElementById("normasSelect");
+  selecionados.forEach(o=>{
+    // devolver ao disponíveis somente se ela fizer parte do catálogo
+    if (!Array.from(disp.options).some(x => x.value === o.value)) {
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.textContent;
+      disp.appendChild(opt);
+    }
+    o.remove();
+  });
+
+  ordenarSelect(disp);
+}
+
+// mover selecionadas (ESQUERDA -> DIREITA)
+function moverParaEscolhidas(){
+  const disp = document.getElementById("normasSelect");
+  const esc  = document.getElementById("normasEscolhidas");
+  const move = Array.from(disp.selectedOptions);
+  if(!move.length) return;
+  move.forEach(o=>{
+    // evitar duplicata
+    if(!Array.from(esc.options).some(x=>x.value===o.value)){
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.textContent;
+      esc.appendChild(opt);
+    }
+    o.remove();
+  });
+}
+
+// mover de volta (DIREITA -> ESQUERDA) — sem confirmação (botão específico usa confirmação)
+function moverParaDisponiveis(){
+  const disp = document.getElementById("normasSelect");
+  const esc  = document.getElementById("normasEscolhidas");
+  const move = Array.from(esc.selectedOptions);
+  move.forEach(o=>{
+    // só devolve se fizer sentido manter no catálogo
+    if(!Array.from(disp.options).some(x=>x.value===o.value)){
+      const opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.textContent;
+      disp.appendChild(opt);
+    }
+    o.remove();
+  });
+  ordenarSelect(disp);
+}
+
+function ordenarSelect(sel){
+  const opts = Array.from(sel.options).sort((a,b)=>a.text.localeCompare(b.text));
+  sel.innerHTML=""; opts.forEach(o=>sel.appendChild(o));
+}
+
+// filtro de busca (lado ESQUERDO)
+function filtrarDisponiveis(){
+  const q = (document.getElementById("buscaNorma").value || "").toLowerCase();
+  const sel = document.getElementById("normasSelect");
+  Array.from(sel.options).forEach(o=>{
+    const show = o.textContent.toLowerCase().includes(q);
+    o.hidden = !show;
+  });
+}
+
+// Ordenação da lista de escolhidas ↑ ↓
+function moverOrdemEscolhida(sentido){
+  const sel = document.getElementById("normasEscolhidas");
+  const opts = Array.from(sel.options);
+  const selIdxs = opts.map((o,i)=>o.selected?i:-1).filter(i=>i>=0);
+  if(!selIdxs.length) return;
+
+  if (sentido === "up"){
+    selIdxs.forEach(i=>{
+      if(i === 0) return;
+      sel.insertBefore(opts[i], opts[i-1]);
+    });
+  } else {
+    selIdxs.reverse().forEach(i=>{
+      if(i === opts.length-1) return;
+      sel.insertBefore(opts[i+1], opts[i]);
+    });
+  }
+}
+
+// liga os eventos dos controles de normas
+function ligaEventosNormas(){
+  const disp = document.getElementById("normasSelect");
+  const esc  = document.getElementById("normasEscolhidas");
+
+  // busca
+  document.getElementById("buscaNorma")?.removeEventListener("input", filtrarDisponiveis);
+  document.getElementById("buscaNorma")?.addEventListener("input", filtrarDisponiveis);
+
+  // botões
+  document.getElementById("btnAddSelecionadas")?.onclick = moverParaEscolhidas;
+  document.getElementById("btnRemoverEscolhidas")?.onclick = deleteNormasEscolhidas;
+  document.getElementById("btnMoverCima")?.onclick = ()=>moverOrdemEscolhida("up");
+  document.getElementById("btnMoverBaixo")?.onclick = ()=>moverOrdemEscolhida("down");
+
+  // manter seus botões antigos
+  document.getElementById("btnAddNorma")?.onclick = addNormaCustom;
+  document.getElementById("btnDelNorma")?.onclick = deleteNormasEscolhidas;
+
+  // duplo clique move
+  disp?.addEventListener("dblclick", moverParaEscolhidas);
+  esc?.addEventListener("dblclick", moverParaDisponiveis);
+}
+
+/* 🔄 Integração com seu form: 
+   - preencherForm já chama setNormasSelecionadas(r.normasReferencia)
+   - coletarForm deve ler getNormasSelecionadas()
+   Abaixo só garantimos que as duas funções existem e foram atualizadas.
+*/
+
+
+/*==================================================*/
+   
 function montarNormasSelect(){
   const sel = $("#normasSelect");
   sel.innerHTML = "";
