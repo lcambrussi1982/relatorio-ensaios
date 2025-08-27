@@ -920,3 +920,185 @@ function escapeHtml(s){
     {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
   ));
 }
+
+
+/* =========================
+   AUTH (localStorage)
+   ========================= */
+const STORAGE_USERS = "relatorios-users";
+const STORAGE_SESSION = "relatorios-session";
+
+function nowIso(){ return new Date().toISOString(); }
+async function sha256(txt){
+  const enc = new TextEncoder().encode(txt);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function loadUsers(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_USERS))||[] }catch{ return []; }
+}
+function saveUsers(list){
+  localStorage.setItem(STORAGE_USERS, JSON.stringify(list));
+}
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_SESSION))||null }catch{ return null; }
+}
+function setSession(sess){
+  if(sess) localStorage.setItem(STORAGE_SESSION, JSON.stringify(sess));
+  else localStorage.removeItem(STORAGE_SESSION);
+}
+
+/* cria admin padrão no 1º uso */
+async function ensureDefaultAdmin(){
+  const users = loadUsers();
+  if(!users.length){
+    const passhash = await sha256("admin123");
+    users.push({
+      id: uid(),
+      nome: "Administrador",
+      email: "admin@local",
+      pass: passhash,
+      role: "admin",
+      updatedAt: nowIso()
+    });
+    saveUsers(users);
+  }
+}
+
+/* UI helpers */
+function lockUI(locked=true){
+  document.body.classList.toggle("locked", locked);
+  $("#authScreen").style.display = locked ? "grid" : "none";
+}
+function renderWhoAmI(){
+  const s = getSession();
+  $("#whoami").textContent = s ? `${s.nome} (${s.role})` : "—";
+}
+
+/* controle de permissão */
+function hasRole(...roles){
+  const s = getSession();
+  return !!(s && roles.includes(s.role));
+}
+
+/* ===== Login / Logout ===== */
+async function doLogin(email, password){
+  const users = loadUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if(!user) throw new Error("Usuário não encontrado.");
+  const hash = await sha256(password);
+  if(user.pass !== hash) throw new Error("Senha incorreta.");
+  setSession({ id:user.id, nome:user.nome, email:user.email, role:user.role, ts:Date.now() });
+  renderWhoAmI();
+}
+
+function doLogout(){
+  setSession(null);
+  lockUI(true);
+  renderWhoAmI();
+  toast("Sessão encerrada");
+}
+
+/* ===== CRUD de usuários (admin) ===== */
+function usersRenderTable(){
+  const tbody = $("#tblUsers tbody");
+  const list = loadUsers().sort((a,b)=>a.nome.localeCompare(b.nome));
+  tbody.innerHTML = list.map(u=>`
+    <tr data-id="${u.id}">
+      <td>${escapeHtml(u.nome)}</td>
+      <td>${escapeHtml(u.email)}</td>
+      <td>${escapeHtml(u.role)}</td>
+      <td>${new Date(u.updatedAt).toLocaleString()}</td>
+    </tr>`).join("");
+}
+
+function usersFillForm(u){
+  $("#uNome").value = u?.nome || "";
+  $("#uEmail").value = u?.email || "";
+  $("#uSenha").value = "";
+  $("#uRole").value = u?.role || "editor";
+  $("#userForm").dataset.editingId = u?.id || "";
+}
+
+async function usersSaveOrUpdate(){
+  const nome = $("#uNome").value.trim();
+  const email = $("#uEmail").value.trim();
+  const senha = $("#uSenha").value;
+  const role = $("#uRole").value;
+
+  if(!nome || !email) { toast("Nome e e-mail são obrigatórios.","error"); return; }
+  const editingId = $("#userForm").dataset.editingId || null;
+  const list = loadUsers();
+
+  if(editingId){
+    const i = list.findIndex(u=>u.id===editingId);
+    if(i<0){ toast("Usuário não encontrado.","error"); return; }
+    // impedir e-mail duplicado
+    if(list.some((u,ix)=>ix!==i && u.email.toLowerCase()===email.toLowerCase())){
+      toast("Já existe usuário com esse e-mail.","error"); return;
+    }
+    list[i].nome = nome;
+    list[i].email = email;
+    list[i].role = role;
+    if(senha){ list[i].pass = await sha256(senha); }
+    list[i].updatedAt = nowIso();
+  } else {
+    if(list.some(u=>u.email.toLowerCase()===email.toLowerCase())){
+      toast("Já existe usuário com esse e-mail.","error"); return;
+    }
+    list.push({
+      id: uid(),
+      nome, email, role,
+      pass: senha ? await sha256(senha) : await sha256(Math.random().toString(36).slice(2,10)),
+      updatedAt: nowIso()
+    });
+  }
+  saveUsers(list);
+  usersRenderTable();
+  usersFillForm(null);
+  toast("Usuário salvo/atualizado","success");
+}
+
+function usersDelete(){
+  const editingId = $("#userForm").dataset.editingId || null;
+  if(!editingId){ toast("Selecione um usuário na tabela.","error"); return; }
+  const list = loadUsers();
+  const user = list.find(u=>u.id===editingId);
+  if(!user) return;
+  if(!confirm(`Excluir o usuário:\n\n${user.nome} <${user.email}> ?`)) return;
+  // impedir remover último admin
+  if(user.role==="admin" && list.filter(u=>u.role==="admin").length===1){
+    toast("Não é possível excluir o único admin.","error"); return;
+  }
+  saveUsers(list.filter(u=>u.id!==editingId));
+  usersRenderTable();
+  usersFillForm(null);
+  toast("Usuário excluído");
+}
+
+/* ===== Export/Import ===== */
+function exportUsersJSON(){
+  const data = loadUsers();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`usuarios-relatorios.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Usuários exportados","success");
+}
+function importUsersJSON(ev){
+  const f=ev.target.files?.[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ try{
+    const data=JSON.parse(reader.result);
+    if(!Array.isArray(data)) throw new Error("Formato inválido");
+    // validação simples
+    const ok = data.every(u=>u.id && u.email && u.pass && u.role);
+    if(!ok) throw new Error("Campos obrigatórios ausentes.");
+    saveUsers(data);
+    toast("Usuários importados","success");
+  }catch(e){ toast("Arquivo inválido: "+e.message,"error"); }
+  ev.target.value=""; };
+  reader.readAsText(f);
+}

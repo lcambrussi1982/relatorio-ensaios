@@ -42,10 +42,95 @@
         <input type="file" id="inputImportar" accept="application/json" />
       </label>
       <button id="btnImprimir" type="button" title="Impressão do layout (sistema do navegador)">Imprimir</button>
+      <div class="userbox" aria-live="polite">
+        <span id="whoami" class="whoami">—</span>
+        <button id="btnUsers" type="button" class="secundario" title="Gerenciar usuários">Usuários</button>
+        <button id="btnLogout" type="button" class="danger" title="Sair">Sair</button>
+      </div>
     </div>
   </header>
 
+  <!-- TELA DE LOGIN -->
+  <section id="authScreen" class="auth-screen" aria-label="Acesso restrito">
+    <form id="loginForm" class="auth-card" autocomplete="on">
+      <h1>Acesso ao sistema</h1>
+      <p class="hint">Área restrita. Faça login para continuar.</p>
+
+      <label>E-mail
+        <input type="email" id="loginEmail" required placeholder="usuario@empresa.com" autocomplete="username">
+      </label>
+
+      <label>Senha
+        <input type="password" id="loginPassword" required placeholder="********" autocomplete="current-password">
+      </label>
+
+      <div class="inline" style="justify-content: space-between; width:100%">
+        <button type="submit">Entrar</button>
+        <button type="button" id="btnExportUsers" class="secundario">Exportar usuários</button>
+        <label class="import" for="inputImportUsers">Importar usuários
+          <input type="file" id="inputImportUsers" accept="application/json">
+        </label>
+      </div>
+
+      <p class="small">Dica: no primeiro uso existe um admin padrão:
+        <code>admin@local</code> / <code>admin123</code>
+      </p>
+    </form>
+  </section>
+
+
   <main class="layout" id="app" role="main">
+
+    <!-- MODAL: Gerenciar usuários (admin) -->
+    <dialog id="dlgUsers" class="dlg">
+      <form method="dialog" class="dlg-card" id="userForm">
+        <header class="dlg-head">
+          <h2>Usuários</h2>
+          <button value="cancel" class="secundario">Fechar</button>
+        </header>
+
+        <div class="grid">
+          <label>Nome
+            <input id="uNome" placeholder="Nome completo">
+          </label>
+          <label>E-mail
+            <input id="uEmail" type="email" placeholder="usuario@empresa.com" autocomplete="off">
+          </label>
+          <label>Senha
+            <input id="uSenha" type="password" placeholder="(preencha p/ definir)">
+          </label>
+          <label>Papel
+            <select id="uRole">
+              <option value="admin">admin</option>
+              <option value="editor" selected>editor</option>
+              <option value="viewer">viewer</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="inline" style="gap:8px;margin:10px 0;">
+          <button type="button" id="btnUserSave">Salvar/Atualizar</button>
+          <button type="button" id="btnUserNew" class="secundario">Novo</button>
+          <button type="button" id="btnUserDelete" class="danger">Excluir</button>
+        </div>
+
+        <div class="tabela-wrap">
+          <table class="tabela" id="tblUsers">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Papel</th>
+                <th>Atualizado</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </form>
+    </dialog>
+
+
     <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Lateral: Relatórios -->
@@ -123,74 +208,76 @@
 
         <!-- 4. Métodos -->
         <legend>4. Métodos e Materiais Empregados</legend>
-<p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong> para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
+        <p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong>
+          para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
 
-<!-- Formulário de inclusão/edição rápida -->
-<div class="grid" style="margin-bottom:12px">
-  <label>Método / Descrição
-    <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
-  </label>
+        <!-- Formulário de inclusão/edição rápida -->
+        <div class="grid" style="margin-bottom:12px">
+          <label>Método / Descrição
+            <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
+          </label>
 
-  <label>Norma / Referência
-    <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
-  </label>
+          <label>Norma / Referência
+            <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
+          </label>
 
-  <label>Equipamento
-    <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
-  </label>
+          <label>Equipamento
+            <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
+          </label>
 
-  <label>Materiais
-    <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
-  </label>
+          <label>Materiais
+            <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
+          </label>
 
-  <label>Procedimento (resumo)
-    <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
-  </label>
+          <label>Procedimento (resumo)
+            <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
+          </label>
 
-  <label>Critério / Requisito
-    <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
-  </label>
+          <label>Critério / Requisito
+            <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
+          </label>
 
-  <label>Unidade
-    <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
-  </label>
+          <label>Unidade
+            <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
+          </label>
 
-  <label class="inline" style="align-items:flex-end">
-    <input type="checkbox" id="metAplicado" />
-    <span>Aplicado?</span>
-  </label>
-</div>
+          <label class="inline" style="align-items:flex-end">
+            <input type="checkbox" id="metAplicado" />
+            <span>Aplicado?</span>
+          </label>
+        </div>
 
-<div class="inline" style="gap:8px; margin-bottom:10px">
-  <button type="button" id="btnAddMetodo" class="secundario">Incluir</button>
-  <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
-</div>
+        <div class="inline" style="gap:8px; margin-bottom:10px">
+          <button type="button" id="btnAddMetodo" class="secundario">Incluir</button>
+          <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
+        </div>
 
-<!-- Grade (tabela) -->
-<div class="tabela-wrap">
-  <table class="tabela" id="tblMetodos">
-    <thead>
-      <tr>
-        <th style="min-width:220px">Método / Descrição</th>
-        <th>Norma</th>
-        <th>Equipamento</th>
-        <th>Materiais</th>
-        <th>Procedimento</th>
-        <th>Critério</th>
-        <th>Unid.</th>
-        <th>Aplic.</th>
-        <th aria-label="Ações" style="min-width:140px">Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- linhas geradas via JS -->
-    </tbody>
-  </table>
-</div>
+        <!-- Grade (tabela) -->
+        <div class="tabela-wrap">
+          <table class="tabela" id="tblMetodos">
+            <thead>
+              <tr>
+                <th style="min-width:220px">Método / Descrição</th>
+                <th>Norma</th>
+                <th>Equipamento</th>
+                <th>Materiais</th>
+                <th>Procedimento</th>
+                <th>Critério</th>
+                <th>Unid.</th>
+                <th>Aplic.</th>
+                <th aria-label="Ações" style="min-width:140px">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- linhas geradas via JS -->
+            </tbody>
+          </table>
+        </div>
 
-<p class="hint" style="margin-top:10px">
-  Dica: use descrições objetivas; detalhes extensos podem ir para anexos. Na impressão/PDF este cadastro pode ser ocultado com a classe <code>no-print</code> no fieldset.
-</p>
+        <p class="hint" style="margin-top:10px">
+          Dica: use descrições objetivas; detalhes extensos podem ir para anexos. Na impressão/PDF este cadastro pode
+          ser ocultado com a classe <code>no-print</code> no fieldset.
+        </p>
 
 
         <!-- 5. Resultados -->
@@ -272,8 +359,8 @@
     <small>© <span id="ano"></span> Shiva Plásticos — Relatórios digitais.</small>
   </footer>
 
-  <!-- VLibras 
- <div vw class="enabled">
+  <!-- VLibras -->
+  <div vw class="enabled">
     <div vw-access-button class="active"></div>
     <div vw-plugin-wrapper>
       <div class="vw-plugin-top-wrapper"></div>
@@ -295,7 +382,7 @@
       }
     })();
   </script>
--->
+
 
   <script src="script.js" defer></script>
 </body>

@@ -500,3 +500,44 @@ select:focus {
     color: #000
   }
 }
+
+
+/* ===== Auth screen ===== */
+.auth-screen{
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, var(--panel) 0, rgba(255,255,255,.95) 260px);
+  z-index: 50;
+}
+.auth-card{
+  width: min(440px, 92vw);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  display: grid; gap: 12px;
+}
+.auth-card h1{ margin: 0 0 6px; }
+.auth-card button{ width: max-content; }
+
+.userbox{ display:flex; align-items:center; gap:8px; }
+.whoami{ color:#fff; font-weight:700; }
+
+/* ===== Dialog base ===== */
+.dlg::backdrop{ background: rgba(0,0,0,.35); }
+.dlg-card{
+  width: min(920px, 96vw);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.dlg-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.dlg-head h2{ margin:0; }
+
+/* esconder UI quando não logado */
+body.locked .topbar,
+body.locked .layout,
+body.locked .rodape{ filter: blur(2px); pointer-events:none; user-select:none; }
