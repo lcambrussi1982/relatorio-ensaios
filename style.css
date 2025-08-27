@@ -1,35 +1,38 @@
-/* =========================================================
-   Shiva/Chiva — UI base + Responsividade
-   ========================================================= */
 :root {
-  /* Cores */
+  /* Paleta Chiva (60-30-10) */
   --bg: #FAFBFF;
+  /* base clara */
   --panel: #DFF3FF;
+  /* azul-claro */
   --card: #FFFFFF;
+  /* cartões */
   --ink: #0F1E3D;
+  /* texto principal (azul marinho) */
   --muted: #5C6B84;
+  /* texto secundário */
   --border: #E2E8F0;
+  /* bordas */
+
   --brand: #E1262D;
+  /* vermelho Chiva */
   --brand-hover: #C81F25;
   --sea: #0077B6;
+  /* azul da onda */
   --sea-weak: #E6F7FF;
+  /* azul leve */
+
   --success: #22C55E;
   --danger: #E11D48;
 
-  /* Efeitos */
   --ring: 0 0 0 4px rgba(225, 38, 45, .18);
   --shadow: 0 8px 24px rgba(15, 30, 61, .08);
 
-  /* Tipografia */
-  --fs-base: clamp(14px, 1.6vw, 16px);
-  --fs-sm: clamp(12px, 1.2vw, 14px);
+  --fs-base: clamp(14px, 1.7vw, 16px);
+  --fs-sm: clamp(12px, 1.3vw, 14px);
   --fs-lg: clamp(18px, 2.2vw, 22px);
-
-  /* Layout */
-  --container: 1120px;
 }
 
-/* Reset / base */
+/* Reset básico */
 * {
   box-sizing: border-box
 }
@@ -41,11 +44,12 @@ body {
 
 body {
   margin: 0;
-  color: var(--ink);
   font: var(--fs-base)/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu;
+  color: var(--ink);
   background: linear-gradient(180deg, var(--panel) 0, var(--bg) 220px);
 }
 
+/* Acessibilidade */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -55,7 +59,7 @@ body {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0
+  border: 0;
 }
 
 .sr-only-focusable:focus {
@@ -65,49 +69,33 @@ body {
   margin: 0;
   overflow: visible;
   clip: auto;
-  white-space: normal
+  white-space: normal;
 }
 
-/* =========================================================
-   Topbar (responsiva)
-   ========================================================= */
+/* Topbar */
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 10px 18px;
   background: #0F1E3D;
+  /* azul marinho do tema */
   border-bottom: 2px solid var(--brand);
   box-shadow: var(--shadow);
-  max-width: 100%;
-  width: 100%;
-}
-
-.topbar-inner {
-  /* evita esticar em telas largas e dá wrap bonito */
-  width: 100%;
-  max-width: var(--container);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0
+  gap: 12px
 }
 
 .brand img {
-  height: 64px;
+  height: 75px;
   width: auto;
   display: block
 }
@@ -115,17 +103,13 @@ body {
 .brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
-  min-width: 0
+  line-height: 1.1
 }
 
 .brand-title {
   font-size: 18px;
   font-weight: 800;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis
+  color: #fff
 }
 
 .brand-sub {
@@ -185,22 +169,15 @@ button.danger:hover {
   background: #b91c1c
 }
 
-/* =========================================================
-   Layout principal
-   ========================================================= */
+/* Layout */
 .layout {
-  width: 100%;
-  max-width: var(--container);
-  margin: 14px auto;
-  padding: 0 12px;
   display: grid;
   grid-template-columns: 300px 1fr;
-  gap: 16px;
-  min-height: calc(100vh - 90px);
+  min-height: calc(100vh - 70px)
 }
 
 .conteudo {
-  padding: 0
+  padding: 22px
 }
 
 body.aside-collapsed .layout {
@@ -214,17 +191,14 @@ body.aside-collapsed .lista-relatorios {
 /* Sidebar */
 .lista-relatorios {
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  height: max-content;
+  border-right: 1px solid var(--border);
+  padding: 16px
 }
 
 .aside-head {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
+  display: flex;
   gap: 10px;
+  align-items: center;
   margin-bottom: 14px
 }
 
@@ -237,15 +211,12 @@ body.aside-collapsed .lista-relatorios {
 }
 
 #filtroLista {
-  width: 100%;
-  height: 40px;
+  flex: 1;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #fff;
   outline: none;
-  -webkit-appearance: none;
-  appearance: none;
 }
 
 #filtroLista:focus {
@@ -259,7 +230,7 @@ body.aside-collapsed .lista-relatorios {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px
+  gap: 10px;
 }
 
 #listaRelatorios li {
@@ -283,9 +254,7 @@ body.aside-collapsed .lista-relatorios {
   margin-top: 4px
 }
 
-/* =========================================================
-   Formulários
-   ========================================================= */
+/* Formulários */
 form fieldset {
   border: 1px solid var(--border);
   background: #fff;
@@ -372,13 +341,10 @@ select:focus {
   margin-bottom: 8px
 }
 
-/* =========================================================
-   Tabelas / grades
-   ========================================================= */
+/* Tabelas / Grade */
 .tabela-wrap {
   width: 100%;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: auto
 }
 
 .tabela {
@@ -389,8 +355,6 @@ select:focus {
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
-  min-width: 720px;
-  /* garante scroll em telas pequenas */
 }
 
 .tabela thead th {
@@ -419,6 +383,7 @@ select:focus {
   border-bottom: none
 }
 
+/* Botões mini (Ações da grade) */
 .btn-mini {
   padding: 6px 10px;
   border-radius: 10px;
@@ -450,210 +415,40 @@ select:focus {
   border-top: 1px solid var(--border);
   background: #fff;
   text-align: center;
-  color: var(--muted)
+  color: var(--muted);
 }
 
-/* VLibras por cima */
+/* VLibras sempre visível por cima */
 [vw],
 [vw] *,
 [vw-plugin-wrapper] {
   z-index: 2147483647 !important
 }
 
-/* =========================================================
-   Responsividade
-   ========================================================= */
-
-/* >=1025 e <=1280: pequenas reduções */
-@media (max-width:1280px) {
-  :root {
-    --container: 1040px
-  }
-
-  .brand img {
-    height: 60px
+/* Responsividade */
+@media (max-width:980px) {
+  .combo-grid {
+    grid-template-columns: 1fr
   }
 }
 
-/* <=1024: topbar pode quebrar; ações ocupam a largura */
-@media (max-width:1024px) {
-  :root {
-    --container: 920px
-  }
-
-  .topbar {
-    padding: 10px 14px
-  }
-
-  .topbar-inner {
-    gap: 12px
-  }
-
-  .actions {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 6px
-  }
-
-  .actions>* {
-    flex: 1 1 auto;
-    min-width: 140px
-  }
-
-  .brand img {
-    height: 56px
-  }
-}
-
-/* <=900: some sidebar, conteúdo em foco, campos compactos */
-@media (max-width:900px) {
-  :root {
-    --container: 100%
-  }
-
+@media (max-width:860px) {
   .layout {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 0 10px
-  }
-
-  .lista-relatorios {
-    display: none
-  }
-
-  form fieldset {
-    padding: 14px;
-    border-radius: 14px
-  }
-
-  .grid {
-    gap: 10px;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))
-  }
-
-  input,
-  textarea,
-  select {
-    padding: 10px;
-    border-radius: 10px
-  }
-}
-
-/* <=768: cabeçalho empilha (logo em cima, botões abaixo) */
-@media (max-width:768px) {
-  .topbar-inner {
-    width: 100%;
-    max-width: var(--container);
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch
-  }
-
-  .brand {
-    justify-content: center
-  }
-
-  .brand-text {
-    text-align: center
-  }
-
-  .actions {
-    width: 100%
-  }
-
-  .actions>* {
-    flex: 1 1 48%;
-    min-width: 140px
-  }
-
-  /* 2 colunas */
-  .tabela thead th,
-  .tabela td {
-    padding: 9px
-  }
-}
-
-/* <=640: uma coluna, botões em stack, logo menor */
-@media (max-width:640px) {
-  .brand img {
-    height: 44px
-  }
-
-  .brand-text {
-    display: none
-  }
-
-  .actions {
-    gap: 8px
-  }
-
-  .actions>* {
-    flex: 1 1 100%;
-    min-width: 100%
-  }
-
-  /* botões 100% */
-  .grid {
     grid-template-columns: 1fr
-  }
-
-  .tabela {
-    min-width: 640px
-  }
-
-  body {
-    padding-bottom: 56px
-  }
-
-  /* calço pro botão VLibras */
-}
-
-/* <=520: título da marca já está oculto acima; apenas finos */
-@media (max-width:520px) {
-  .aside-head {
-    grid-template-columns: 1fr
-  }
-
-  .aside-head h2 {
-    margin-bottom: 6px
-  }
-
-  #filtroLista {
-    height: 38px
-  }
-}
-
-/* <=480: micro ajustes */
-@media (max-width:480px) {
-  .topbar {
-    padding: 8px 10px
   }
 
   .brand img {
     height: 40px
   }
+}
 
-  button,
-  .import {
-    padding: 8px 10px;
-    border-radius: 10px
-  }
-
-  .btn-mini {
-    padding: 5px 8px;
-    border-radius: 8px
-  }
-
-  .tabela thead th,
-  .tabela td {
-    padding: 8px
+@media (max-width:520px) {
+  .brand-text {
+    display: none
   }
 }
 
-/* =========================================================
-   Impressão (limpa UI e cores)
-   ========================================================= */
+/* Impressão: esconder elementos de UI/CRUD e limpar cores */
 @media print {
 
   .topbar,
@@ -667,7 +462,7 @@ select:focus {
     display: none !important
   }
 
-  /* ocultar CRUD de métodos na impressão */
+  /* Esconde todo o CRUD de métodos (fieldset 4 em grade) */
   #tblMetodos,
   #btnAddMetodo,
   #btnLimparMetodo,
@@ -679,7 +474,7 @@ select:focus {
   #metCriterio,
   #metUnidade,
   #metAplicado {
-    display: none !important
+    display: none !important;
   }
 
   body {
@@ -704,85 +499,4 @@ select:focus {
   legend {
     color: #000
   }
-
-  .tabela {
-    min-width: auto
-  }
-}
-
-/* ====== Wrapper do cabeçalho para responsividade elegante ====== */
-.topbar-inner{
-  width:100%;
-  max-width:1120px;          /* acompanha seu container do layout */
-  margin:0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  flex-wrap:wrap;            /* permite quebrar em 2 linhas (logo em cima, botões abaixo) */
-}
-
-/* Tablet: os botões ocupam a linha inteira quando necessário */
-@media (max-width:1024px){
-  .topbar{ padding:10px 14px; }
-  .topbar-inner{ gap:12px; }
-  .actions{ width:100%; justify-content:flex-start; gap:6px; }
-  .actions > *{ flex:1 1 auto; min-width:140px; }
-  .brand img{ height:56px; }
-}
-
-/* Empilha no mobile: 2 colunas de botões (quando couber) */
-@media (max-width:768px){
-  .topbar-inner{ flex-direction:column; align-items:stretch; }
-  .brand{ justify-content:center; }
-  .brand-text{ text-align:center; }
-  .actions{ width:100%; }
-  .actions > *{ flex:1 1 48%; min-width:140px; } /* 2 colunas */
-  .tabela thead th, .tabela td{ padding:9px; }
-}
-
-/* Celular estreito: botões empilhados, logo menor */
-@media (max-width:640px){
-  .brand img{ height:44px; }
-  .brand-text{ display:none; } /* mais espaço */
-  .actions{ gap:8px; }
-  .actions > *{ flex:1 1 100%; min-width:100%; } /* botões 100% */
-  .grid{ grid-template-columns:1fr; }            /* grids viram 1 coluna */
-  .tabela{ min-width:640px; }                    /* rolável horizontal */
-  body{ padding-bottom:56px; }                   /* calço pro VLibras */
-}
-
-/* Sidebar: título + busca alinhados e responsivos */
-.lista-relatorios .aside-head{
-  display:grid;
-  grid-template-columns:auto 1fr; /* h2 | busca preenche o resto */
-  align-items:center;
-  gap:10px;
-}
-#filtroLista{
-  width:100%;
-  height:40px;
-  -webkit-appearance:none; appearance:none;
-}
-
-/* Layout: centralizado e com gap consistente */
-.layout{
-  width:100%;
-  max-width:1120px;
-  margin:14px auto;
-  padding:0 12px;
-  gap:16px;
-}
-@media (max-width:900px){
-  .layout{ grid-template-columns:1fr; }
-  .lista-relatorios{ display:none; } /* foca no conteúdo em telas menores */
-}
-
-/* Tabela: rolagem suave e padding reduzido em telas menores */
-.tabela-wrap{ -webkit-overflow-scrolling:touch; }
-@media (max-width:720px){
-  .tabela{ min-width:720px; }
-}
-@media (max-width:480px){
-  .tabela thead th, .tabela td{ padding:8px; }
 }
