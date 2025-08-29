@@ -536,49 +536,137 @@ function loadImageAsDataURL(url){
   });
 }
 
+// =========================
+// Util p/ pegar a LOGO em base64
+// =========================
+async function getLogoDataURL() {
+  // tenta pegar a imagem que está no topo do HTML
+  const logoEl = document.querySelector('.brand img');
+  const src = logoEl?.src || 'shiva_logo_transparente.png'; // fallback
+
+  try {
+    return await loadImageAsDataURL(src);
+  } catch {
+    return null; // se falhar, ignora a logo
+  }
+}
+
+function getImageFormatFromDataURL(dataUrl){
+  // retorna "PNG" ou "JPEG" para o jsPDF.addImage
+  if (typeof dataUrl !== "string") return "JPEG";
+  if (dataUrl.startsWith("data:image/png")) return "PNG";
+  return "JPEG";
+}
+
+
 /* =========================
    PDF (texto)
    ========================= */
 async function gerarPDF(){
-  const {jsPDF}=window.jspdf;
-  const r=coletarForm();
-  const doc=new jsPDF({unit:"pt",format:"a4"});
+  const { jsPDF } = window.jspdf;
+  const r = coletarForm();
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
 
   const PAGE_W = doc.internal.pageSize.getWidth();
   const PAGE_H = doc.internal.pageSize.getHeight();
   const MARGIN_X = 40, MARGIN_TOP = 50, MARGIN_BOTTOM = 40;
   let y = MARGIN_TOP;
 
+  // 🔹 carrega a logo da topbar (ou 'shiva_logo_transparente.png' como fallback)
+  const LOGO_DURL = await getLogoDataURL();
+  const LOGO_FMT  = LOGO_DURL ? getImageFormatFromDataURL(LOGO_DURL) : null;
+
+  // mede proporção da logo para escalar corretamente
+  let logoDims = { w: 110, h: 32 }; // tamanho alvo (pode ajustar)
+  if (LOGO_DURL) {
+    const img = new Image();
+    img.src = LOGO_DURL;
+    await new Promise(res => (img.complete ? res() : (img.onload = res)));
+    // preserva proporção usando largura alvo = 110pt
+    const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
+    logoDims.h = Math.round(logoDims.w * ratio);
+  }
+
   const addHeader = () => {
-    doc.setFontSize(16); doc.setTextColor(THEME.ink); doc.setFont("helvetica","bold");
-    doc.text("Relatório de Ensaio – PVC-U", MARGIN_X, y); y += 10;
-    doc.setDrawColor(190); doc.line(MARGIN_X, y, PAGE_W - MARGIN_X, y);
-    y += 18; doc.setFont("helvetica","normal");
+    let headerBottomY;
+
+    if (LOGO_DURL) {
+      // desenha logo à esquerda
+      doc.addImage(LOGO_DURL, LOGO_FMT, MARGIN_X, y - 20, logoDims.w, logoDims.h);
+      // título alinhado à direita da logo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(THEME.ink);
+      const titleX = MARGIN_X + logoDims.w + 12;
+      const titleY = Math.max(y + 8, y - 20 + logoDims.h * 0.6);
+      doc.text("Relatório de Ensaio – PVC-U", titleX, titleY);
+      headerBottomY = Math.max(y - 20 + logoDims.h, titleY + 4);
+    } else {
+      // sem logo: título padrão
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(THEME.ink);
+      doc.text("Relatório de Ensaio – PVC-U", MARGIN_X, y);
+      headerBottomY = y + 10;
+    }
+
+    // linha divisória
+    doc.setDrawColor(190);
+    doc.line(MARGIN_X, headerBottomY + 6, PAGE_W - MARGIN_X, headerBottomY + 6);
+
+    // cursor após o header
+    y = headerBottomY + 24;
+    doc.setFont("helvetica", "normal");
   };
+
   const addFooter = () => {
     const pageNum = doc.internal.getNumberOfPages();
-    doc.setFontSize(9); doc.setTextColor(120);
-    doc.text(`Relatório ${r.numeroRelatorio || "-"} • pág. ${pageNum}`, PAGE_W - MARGIN_X, PAGE_H - 20, { align: "right" });
-  };
-  const ensureSpace = (h=18) => {
-    if (y + h > PAGE_H - MARGIN_BOTTOM) {
-      addFooter(); doc.addPage(); y = MARGIN_TOP; addHeader();
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(
+      `Relatório ${r.numeroRelatorio || "-"} • pág. ${pageNum}`,
+      PAGE_W - MARGIN_X,
+      PAGE_H - 20,
+      { align: "right" }
+    );
+
+    // (opcional) mini-logo no rodapé
+    if (LOGO_DURL) {
+      doc.addImage(LOGO_DURL, LOGO_FMT, MARGIN_X, PAGE_H - 32, 60, Math.max(18, Math.round(60 * (logoDims.h / Math.max(1, logoDims.w)))));
     }
   };
+
+  const ensureSpace = (h = 18) => {
+    if (y + h > PAGE_H - MARGIN_BOTTOM) {
+      addFooter();
+      doc.addPage();
+      y = MARGIN_TOP;
+      addHeader();
+    }
+  };
+
   const title = (t) => {
     ensureSpace(24);
-    doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(THEME.brand);
-    doc.text(t, MARGIN_X, y); y += 14;
-    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(THEME.brand);
+    doc.text(t, MARGIN_X, y);
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(THEME.ink);
   };
-  const paragraph = (txt, width=PAGE_W - 2*MARGIN_X, lineH=14) => {
+
+  const paragraph = (txt, width = PAGE_W - 2 * MARGIN_X, lineH = 14) => {
     const lines = doc.splitTextToSize(txt || "-", width);
-    lines.forEach(()=>ensureSpace(lineH));
+    lines.forEach(() => ensureSpace(lineH));
     doc.text(lines, MARGIN_X, y);
     y += lines.length * lineH + 6;
   };
-  const kv = (k,v) => paragraph(`${k}: ${v||"-"}`);
 
+  const kv = (k, v) => paragraph(`${k}: ${v || "-"}`);
+
+  // ===== CONTEÚDO =====
   addHeader();
 
   title("1. Identificação do Relatório");
@@ -590,17 +678,21 @@ async function gerarPDF(){
   kv("Normas de referência", r.normasReferencia || "-");
 
   title("2. Identificação da(s) Amostra(s)");
-  (r.amostras||[]).forEach((a,i)=>{
-    paragraph(`Amostra ${i+1}: ${[
-      a.descricao && `Descrição: ${a.descricao}`,
-      a.tipo && `Tipo: ${a.tipo}`,
-      a.dimensao && `Dimensão nominal: ${a.dimensao}`,
-      a.cor && `Cor: ${a.cor}`,
-      a.processo && `Processo: ${a.processo}`,
-      a.marca && `Marca: ${a.marca}`,
-      a.lote && `Lote/Nº: ${a.lote}`,
-      a.quantidade && `Qtd.: ${a.quantidade}`
-    ].filter(Boolean).join(" | ")}`);
+  (r.amostras || []).forEach((a, i) => {
+    paragraph(
+      `Amostra ${i + 1}: ${[
+        a.descricao && `Descrição: ${a.descricao}`,
+        a.tipo && `Tipo: ${a.tipo}`,
+        a.dimensao && `Dimensão nominal: ${a.dimensao}`,
+        a.cor && `Cor: ${a.cor}`,
+        a.processo && `Processo: ${a.processo}`,
+        a.marca && `Marca: ${a.marca}`,
+        a.lote && `Lote/Nº: ${a.lote}`,
+        a.quantidade && `Qtd.: ${a.quantidade}`,
+      ]
+        .filter(Boolean)
+        .join(" | ")}`
+    );
   });
 
   title("3. Objetivo do Ensaio");
@@ -611,18 +703,23 @@ async function gerarPDF(){
 
   title("5. Resultados dos Ensaios");
   const rows = r.resultados || [];
-  if (!rows.length) paragraph("Sem resultados informados.");
-  else rows.forEach(res => {
-    ensureSpace(42);
-    doc.setFont("helvetica","bold"); doc.text(`• ${res.ensaio || "-"}`, MARGIN_X, y); y += 14;
-    doc.setFont("helvetica","normal");
-    paragraph(`Resultado: ${res.resultado || "-"}`);
-    paragraph(`Requisito normativo: ${res.requisito || "-"}`);
-    doc.setTextColor(res.conformidade === "Conforme" ? THEME.success : THEME.danger);
-    paragraph(`Conformidade: ${res.conformidade || "-"}`);
-    doc.setTextColor(THEME.ink);
-    y += 2;
-  });
+  if (!rows.length) {
+    paragraph("Sem resultados informados.");
+  } else {
+    rows.forEach((res) => {
+      ensureSpace(42);
+      doc.setFont("helvetica", "bold");
+      doc.text(`• ${res.ensaio || "-"}`, MARGIN_X, y);
+      y += 14;
+      doc.setFont("helvetica", "normal");
+      paragraph(`Resultado: ${res.resultado || "-"}`);
+      paragraph(`Requisito normativo: ${res.requisito || "-"}`);
+      doc.setTextColor(res.conformidade === "Conforme" ? THEME.success : THEME.danger);
+      paragraph(`Conformidade: ${res.conformidade || "-"}`);
+      doc.setTextColor(THEME.ink);
+      y += 2;
+    });
+  }
 
   title("6. Discussão dos Resultados");
   paragraph(r.discussao);
@@ -632,62 +729,65 @@ async function gerarPDF(){
   paragraph(r.conclusao?.observacoes || "");
 
   title("8. Anexos");
-  const anex = r.anexos||{};
-  paragraph(`Certificados: ${(anex.certificados||[]).join("; ") || "-"}`);
-  paragraph(`Planilhas/Gráficos: ${(anex.planilhas||[]).join("; ") || "-"}`);
-  paragraph(`Fotos das amostras: ${(anex.fotos||[]).join("; ") || "-"}`);
+  const anex = r.anexos || {};
+  paragraph(`Certificados: ${(anex.certificados || []).join("; ") || "-"}`);
+  paragraph(`Planilhas/Gráficos: ${(anex.planilhas || []).join("; ") || "-"}`);
+  paragraph(`Fotos das amostras: ${(anex.fotos || []).join("; ") || "-"}`);
 
-  if ((r.imagens||[]).length){
+  if ((r.imagens || []).length) {
     title("9. Imagens");
     const thumbW = 220, thumbMaxH = 160, gap = 14;
     let col = 0;
-    for (let i=0;i<r.imagens.length;i++){
+    for (let i = 0; i < r.imagens.length; i++) {
       const it = r.imagens[i];
-      const url = (typeof it === "string") ? it : it.src;
-      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i+1}`;
-      try{
+      const url = typeof it === "string" ? it : it.src;
+      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i + 1}`;
+      try {
         const dataUrl = await loadImageAsDataURL(url);
         const img = new Image(); img.src = dataUrl;
-        await new Promise(res => { if (img.complete) res(); else img.onload = res; });
-        const ratio = img.naturalHeight / img.naturalWidth;
+        await new Promise(res => (img.complete ? res() : (img.onload = res)));
+
+        const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
         const h = Math.min(thumbW * ratio, thumbMaxH);
         const w = thumbW;
+
         ensureSpace(h + 18);
         const x = MARGIN_X + col * (w + gap);
-        doc.addImage(dataUrl, "JPEG", x, y, w, h);
+        doc.addImage(dataUrl, getImageFormatFromDataURL(dataUrl), x, y, w, h);
         doc.setFontSize(9); doc.setTextColor(100);
         doc.text(legenda, x, y + h + 10);
         doc.setTextColor(THEME.ink);
-        if (col === 1){ y += h + 26; col = 0; } else { col = 1; }
-      }catch{
+
+        if (col === 1) { y += h + 26; col = 0; } else { col = 1; }
+      } catch {
         ensureSpace(14);
         doc.setFontSize(10); doc.setTextColor(150);
-        doc.text(`(Não foi possível carregar a imagem ${i+1})`, MARGIN_X, y);
+        doc.text(`(Não foi possível carregar a imagem ${i + 1})`, MARGIN_X, y);
         y += 16; doc.setTextColor(THEME.ink);
       }
     }
     if (col === 1) y += 8;
   }
 
-  if ((r.tabelasExtras||[]).length){
+  if ((r.tabelasExtras || []).length) {
     title("10. Tabelas adicionais");
-    const colW = (PAGE_W - 2*MARGIN_X - 20) / 2;
+    const colW = (PAGE_W - 2 * MARGIN_X - 20) / 2;
     const lineH = 14;
-    (r.tabelasExtras||[]).forEach((tbl, idxTbl) => {
+    (r.tabelasExtras || []).forEach((tbl, idxTbl) => {
       ensureSpace(18);
-      doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
-      const titulo = tbl?.titulo ? `Tabela ${idxTbl+1} — ${tbl.titulo}` : `Tabela ${idxTbl+1}`;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
+      const titulo = tbl?.titulo ? `Tabela ${idxTbl + 1} — ${tbl.titulo}` : `Tabela ${idxTbl + 1}`;
       doc.text(titulo, MARGIN_X, y); y += 12;
-      doc.setFont("helvetica","normal"); doc.setFontSize(10);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
 
       const linhas = tbl?.linhas || tbl || [];
-      if (!linhas.length){ paragraph("(sem dados)"); return; }
+      if (!linhas.length) { paragraph("(sem dados)"); return; }
 
       ensureSpace(lineH);
-      doc.setFont("helvetica","bold");
+      doc.setFont("helvetica", "bold");
       doc.text("Coluna 1", MARGIN_X, y);
       doc.text("Coluna 2", MARGIN_X + colW + 20, y);
-      doc.setFont("helvetica","normal");
+      doc.setFont("helvetica", "normal");
       y += 10;
 
       linhas.forEach((row) => {
@@ -698,8 +798,8 @@ async function gerarPDF(){
         const h = Math.max(c1Lines.length, c2Lines.length) * lineH;
 
         ensureSpace(h + 4);
-        c1Lines.forEach((ln, i) => doc.text(ln, MARGIN_X, y + i*lineH));
-        c2Lines.forEach((ln, i) => doc.text(ln, MARGIN_X + colW + 20, y + i*lineH));
+        c1Lines.forEach((ln, i) => doc.text(ln, MARGIN_X, y + i * lineH));
+        c2Lines.forEach((ln, i) => doc.text(ln, MARGIN_X + colW + 20, y + i * lineH));
         y += h + 4;
       });
 
@@ -708,8 +808,9 @@ async function gerarPDF(){
   }
 
   addFooter();
-  doc.save(`relatorio-${sanitizeFileName(r.numeroRelatorio)||"ensaio"}.pdf`);
+  doc.save(`relatorio-${sanitizeFileName(r.numeroRelatorio) || "ensaio"}.pdf`);
 }
+
 
 /* =========================
    PDF (layout HTML)
