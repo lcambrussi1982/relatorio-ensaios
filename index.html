@@ -1,19 +1,17 @@
 <!doctype html>
 <html lang="pt-br">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shiva Plásticos — Relatório de Ensaio PVC-U</title>
 
-  <!-- Bibliotecas para PDF -->
+  <!-- PDF libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 
   <link rel="stylesheet" href="style.css" />
   <meta name="color-scheme" content="light only">
-  <meta name="theme-color" content="#E1262D">
+  <meta name="theme-color" content="#0E3554">
 </head>
 
 <body class="locked">
@@ -21,104 +19,112 @@
 
   <!-- TOPBAR -->
   <header class="topbar" role="banner">
-    <div class="brand" aria-label="Shiva Conexoes">
-      <img src="chiva.png" alt="Shiva Plásticos" />
-      <div class="brand-text">
-        <span class="brand-title">Relatórios de Ensaio</span>
-        <span class="brand-sub">PVC-U • Conexões</span>
+    <div class="container">
+      <div class="brand" aria-label="Shiva Plásticos">
+        <img src="shiva.png" alt="Shiva Plásticos">
+        <div class="brand-text">
+          <span class="brand-title">Relatórios de Ensaio</span>
+          <span class="brand-sub">PVC-U • Conexões</span>
+        </div>
       </div>
-    </div>
 
-    <div class="actions" role="group" aria-label="Ações do relatório">
-      <button id="btnToggleAside" class="secundario" type="button" title="Mostrar/ocultar lista">☰ Lista</button>
-      <button id="btnNovo" type="button" title="Criar relatório em branco">Novo</button>
-      <button id="btnSalvar" type="button" title="Salvar no navegador">Salvar</button>
-      <button id="btnExportar" type="button" title="Exportar este relatório em JSON">Exportar JSON</button>
-      <button id="btnPDF" type="button" title="Gerar PDF com layout de texto">PDF (texto)</button>
-      <button id="btnPDFhtml" type="button" title="Gerar PDF a partir do layout da página">PDF (layout)</button>
-      <label class="import" for="inputImportar" title="Importar um arquivo JSON">
-        Importar JSON
-        <input type="file" id="inputImportar" accept="application/json" />
-      </label>
-      <button id="btnImprimir" type="button" title="Impressão do layout (sistema do navegador)">Imprimir</button>
+      <nav class="actions" role="group" aria-label="Ações do relatório">
+        <div class="btn-group">
+          <button id="btnToggleAside" class="btn btn--ghost" type="button" title="Mostrar/ocultar lista" aria-controls="listaRelatorios" aria-expanded="true">☰ Lista</button>
+        </div>
 
-      <div class="userbox" aria-live="polite">
-        <span id="whoami" class="whoami">—</span>
-        <button id="btnUsers" type="button" class="secundario" title="Gerenciar usuários">Usuários</button>
-        <button id="btnLogout" type="button" class="danger" title="Sair">Sair</button>
-      </div>
+        <div class="btn-group">
+          <button id="btnNovo" class="btn btn--primary" type="button" title="Criar relatório em branco">Novo</button>
+          <button id="btnSalvar" class="btn btn--primary" type="button" title="Salvar no navegador">Salvar</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="btnExportar" class="btn btn--secondary" type="button" title="Exportar este relatório em JSON">Exportar JSON</button>
+          <button id="btnPDF" class="btn btn--secondary" type="button" title="Gerar PDF com layout de texto">PDF (texto)</button>
+          <button id="btnPDFhtml" class="btn btn--secondary" type="button" title="Gerar PDF a partir do layout da página">PDF (layout)</button>
+
+          <label class="btn btn--secondary btn--import" for="inputImportar" title="Importar um arquivo JSON">
+            Importar JSON
+            <input type="file" id="inputImportar" accept="application/json" />
+          </label>
+
+          <button id="btnImprimir" class="btn btn--secondary" type="button" title="Impressão do layout">Imprimir</button>
+        </div>
+
+        <div class="userbox" aria-live="polite">
+          <span id="whoami" class="whoami" aria-atomic="true">—</span>
+          <button id="btnUsers" type="button" class="btn btn--secondary" title="Gerenciar usuários">Usuários</button>
+          <button id="btnLogout" type="button" class="btn btn--danger" title="Sair">Sair</button>
+        </div>
+      </nav>
     </div>
   </header>
 
-  <!-- TELA DE LOGIN -->
+  <!-- LOGIN -->
   <section id="authScreen" class="auth-screen" aria-label="Acesso restrito">
     <form id="loginForm" class="auth-card" autocomplete="on">
       <h1>Acesso ao sistema</h1>
       <p class="hint">Área restrita. Faça login para continuar.</p>
 
-      <label>E-mail
-        <input type="email" id="loginEmail" required placeholder="usuario@empresa.com" autocomplete="username">
-      </label>
+      <label for="loginEmail">E-mail</label>
+      <input type="email" id="loginEmail" required placeholder="usuario@empresa.com" autocomplete="username">
 
-      <label>Senha
-        <input type="password" id="loginPassword" required placeholder="********" autocomplete="current-password">
-      </label>
+      <label for="loginPassword">Senha</label>
+      <input type="password" id="loginPassword" required placeholder="********" autocomplete="current-password">
 
       <div class="inline" style="justify-content: space-between; width:100%">
-        <button type="submit">Entrar</button>
-        <button type="button" id="btnExportUsers" class="secundario">Exportar usuários</button>
-        <label class="import" for="inputImportUsers">Importar usuários
+        <button type="submit" class="btn btn--primary">Entrar</button>
+        <button type="button" id="btnExportUsers" class="btn btn--secondary">Exportar usuários</button>
+        <label class="btn btn--secondary btn--import" for="inputImportUsers">Importar usuários
           <input type="file" id="inputImportUsers" accept="application/json">
         </label>
       </div>
 
-      <p class="small">Dica: no primeiro uso existe um admin padrão:
-        <code>admin@local</code> / <code>admin123</code>
-      </p>
+      <p class="small">Dica: admin padrão <code>admin@local</code> / <code>admin123</code></p>
     </form>
   </section>
 
-  <!-- MODAL: Gerenciar usuários (admin) -->
-  <dialog id="dlgUsers" class="dlg">
+  <!-- DIALOG USUÁRIOS -->
+  <dialog id="dlgUsers" class="dlg" aria-labelledby="dlgUsersTitle">
     <form method="dialog" class="dlg-card" id="userForm">
       <header class="dlg-head">
-        <h2>Usuários</h2>
-        <button value="cancel" class="secundario">Fechar</button>
+        <h2 id="dlgUsersTitle">Usuários</h2>
+        <button value="cancel" class="btn btn--secondary">Fechar</button>
       </header>
 
       <div class="grid">
-        <label>Nome
-          <input id="uNome" placeholder="Nome completo">
-        </label>
-        <label>E-mail
-          <input id="uEmail" type="email" placeholder="usuario@empresa.com" autocomplete="off">
-        </label>
-        <label>Senha
-          <input id="uSenha" type="password" placeholder="(preencha p/ definir)">
-        </label>
-        <label>Papel
-          <select id="uRole">
-            <option value="admin">admin</option>
-            <option value="editor" selected>editor</option>
-            <option value="viewer">viewer</option>
-          </select>
-        </label>
+        <label for="uNome">Nome</label>
+        <input id="uNome" placeholder="Nome completo" autocomplete="name">
+
+        <label for="uEmail">E-mail</label>
+        <input id="uEmail" type="email" placeholder="usuario@empresa.com" autocomplete="off">
+
+        <label for="uSenha">Senha</label>
+        <input id="uSenha" type="password" placeholder="(preencha p/ definir)" autocomplete="new-password">
+
+        <label for="uRole">Papel</label>
+        <select id="uRole">
+          <option value="admin">admin</option>
+          <option value="editor" selected>editor</option>
+          <option value="viewer">viewer</option>
+        </select>
       </div>
 
       <div class="inline" style="gap:8px;margin:10px 0;">
-        <button type="button" id="btnUserSave">Salvar/Atualizar</button>
-        <button type="button" id="btnUserNew" class="secundario">Novo</button>
-        <button type="button" id="btnUserDelete" class="danger">Excluir</button>
+        <button type="button" id="btnUserSave" class="btn btn--primary">Salvar/Atualizar</button>
+        <button type="button" id="btnUserNew" class="btn btn--secondary">Novo</button>
+        <button type="button" id="btnUserDelete" class="btn btn--danger">Excluir</button>
       </div>
 
       <div class="tabela-wrap">
         <table class="tabela" id="tblUsers">
+          <caption class="sr-only">Tabela de usuários cadastrados</caption>
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Papel</th>
-              <th>Atualizado</th>
+              <th scope="col">Nome</th>
+              <th scope="col">E-mail</th>
+              <th scope="col">Papel</th>
+              <th scope="col">Atualizado</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -127,246 +133,211 @@
     </form>
   </dialog>
 
+  <!-- APP -->
   <main class="layout" id="app" role="main">
-    <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div class="container">
+      <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
-    <!-- Lateral: Relatórios -->
-    <aside class="lista-relatorios" aria-label="Relatórios salvos">
-      <div class="aside-head">
-        <h2>Relatórios</h2>
-        <input id="filtroLista" placeholder="Buscar..." type="search" aria-label="Buscar em relatórios salvos" />
-      </div>
-      <ul id="listaRelatorios" aria-live="polite"></ul>
-    </aside>
+      <!-- Sidebar -->
+      <aside class="lista-relatorios" aria-label="Relatórios salvos">
+        <div class="aside-head">
+          <h2>Relatórios</h2>
+          <input id="filtroLista" placeholder="Buscar..." type="search" aria-label="Buscar em relatórios salvos" />
+        </div>
+        <ul id="listaRelatorios" aria-live="polite"></ul>
+      </aside>
 
-    <!-- Conteúdo -->
-    <section class="conteudo" id="conteudo" tabindex="-1">
-      <form id="formRelatorio" novalidate>
-        <!-- 1. Identificação -->
-        <fieldset>
-          <legend>1. Identificação do Relatório</legend>
-          <div class="grid">
-            <label>Nº do Relatório
-              <input required name="numeroRelatorio" autocomplete="off" />
-            </label>
-            <label>Revisão
-              <input name="revisao" autocomplete="off" />
-            </label>
-            <label>Data de emissão
-              <input required name="dataEmissao" type="date" />
-            </label>
-            <label>Responsável Técnico
-              <input required name="responsavelTecnico" autocomplete="name" />
-            </label>
-            <label>Laboratório
-              <input required name="laboratorio" autocomplete="organization" />
-            </label>
-          </div>
+      <!-- Conteúdo -->
+      <section class="conteudo" id="conteudo" tabindex="-1">
+        <form id="formRelatorio" novalidate>
+          <!-- 1. Identificação -->
+          <fieldset>
+            <legend>1. Identificação do Relatório</legend>
+            <div class="grid">
+              <label for="numeroRelatorio">Nº do Relatório</label>
+              <input required id="numeroRelatorio" name="numeroRelatorio" autocomplete="off" />
 
-          <!-- Combo de Normas de Referência -->
-          <div class="combo">
-            <label for="normasSelect">Normas de referência (selecione 1+)</label>
-            <div class="combo-grid">
-              <select id="normasSelect" multiple size="6" aria-describedby="normaHelp"></select>
-              <div class="addbox">
-                <label for="novaNorma" class="small">Gerenciar normas</label>
-                <input id="novaNorma" placeholder="Ex.: ABNT NBR 13292:2024" />
-                <div class="inline">
-                  <button type="button" id="btnAddNorma" class="secundario">Adicionar</button>
-                  <button type="button" id="btnDelNorma" class="secundario danger">Excluir selecionada</button>
-                </div>
-                <p id="normaHelp" class="hint">
-                  Use Ctrl/Cmd para selecionar múltiplas normas.<br>
-                  Você pode incluir novas normas pelo campo ou excluir as selecionadas.
-                </p>
-              </div>
+              <label for="revisao">Revisão</label>
+              <input id="revisao" name="revisao" autocomplete="off" />
+
+              <label for="dataEmissao">Data de emissão</label>
+              <input required id="dataEmissao" name="dataEmissao" type="date" />
+
+              <label for="responsavelTecnico">Responsável Técnico</label>
+              <input required id="responsavelTecnico" name="responsavelTecnico" autocomplete="name" />
+
+              <label for="laboratorio">Laboratório</label>
+              <input required id="laboratorio" name="laboratorio" autocomplete="organization" />
+
+              <label for="normasReferencia">Normas de Referência</label>
+              <select id="normasReferencia" name="normasReferencia">
+                <option value="">Selecione...</option>
+                <option value="ABNT NBR 5648:2018">ABNT NBR 5648:2018</option>
+                <option value="ABNT NBR 8219">ABNT NBR 8219</option>
+                <option value="ABNT NBR NM 82">ABNT NBR NM 82</option>
+                <option value="EN 62321-3-1:2014">EN 62321-3-1:2014</option>
+                <option value="ABNT NBR NM 84">ABNT NBR NM 84</option>
+                <option value="ABNT NBR 8218">ABNT NBR 8218</option>
+                <option value="ABNT NBR 14264">ABNT NBR 14264</option>
+                <option value="ABNT NBR 7371">ABNT NBR 7371</option>
+              </select>
             </div>
-          </div>
-        </fieldset>
+          </fieldset>
 
-        <!-- 2. Amostras -->
-        <fieldset>
-          <legend>2. Identificação da(s) Amostra(s)</legend>
-          <div id="amostras"></div>
-          <button type="button" class="secundario" id="btnAddAmostra">+ Adicionar amostra</button>
-        </fieldset>
+          <!-- 2. Amostras -->
+          <fieldset>
+            <legend>2. Identificação da(s) Amostra(s)</legend>
+            <div id="amostras"></div>
+            <button type="button" class="btn btn--secondary" id="btnAddAmostra">+ Adicionar amostra</button>
+          </fieldset>
 
-        <!-- 3. Objetivo -->
-        <fieldset>
-          <legend>3. Objetivo do Ensaio</legend>
-          <textarea name="objetivo" rows="3"
-            placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
-        </fieldset>
+          <!-- 3. Objetivo -->
+          <fieldset>
+            <legend>3. Objetivo do Ensaio</legend>
+            <textarea name="objetivo" rows="3" placeholder="Apresentar resultados obtidos nos ensaios realizados em conexões de PVC-U, visando verificar a conformidade com as normas técnicas aplicáveis."></textarea>
+          </fieldset>
 
-        <!-- 4. Métodos (com grid CRUD) -->
-        <legend>4. Métodos e Materiais Empregados</legend>
-        <p class="hint">Cadastro interno (não sai no relatório). Preencha os campos e clique em <strong>Incluir</strong>
-          para adicionar à grade. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
+          <!-- 4. Métodos (interno) -->
+          <fieldset class="no-print">
+            <legend>4. Métodos e Materiais Empregados</legend>
+            <p class="hint">Cadastro interno (não sai no relatório). Preencha e clique em <strong>Incluir</strong>. Use <strong>Alterar</strong> ou <strong>Excluir</strong> nas linhas.</p>
 
-        <div class="grid" style="margin-bottom:12px">
-          <label>Método / Descrição
-            <input id="metMetodo" placeholder="Ex.: Determinação de resistência hidrostática (ABNT NBR 13292:2024)" />
-          </label>
-          <label>Norma / Referência
-            <input id="metNorma" placeholder="Ex.: ABNT NBR 13292:2024, ISO 3126:2019" />
-          </label>
-          <label>Equipamento
-            <input id="metEquip" placeholder="Ex.: Máquina de ensaio hidrostático XYZ; Calibrador digital" />
-          </label>
-          <label>Materiais
-            <input id="metMateriais" placeholder="Ex.: Água destilada; Termostato; Conexões PVC-U DN50" />
-          </label>
-          <label>Procedimento (resumo)
-            <input id="metProced" placeholder="Ex.: Pressurizar a 1,5 x PN por 60 min a 23 °C" />
-          </label>
-          <label>Critério / Requisito
-            <input id="metCriterio" placeholder="Ex.: Sem vazamentos/rupturas; Desvio ≤ 2%" />
-          </label>
-          <label>Unidade
-            <input id="metUnidade" placeholder="Ex.: MPa, bar, %, mm" />
-          </label>
-          <label class="inline" style="align-items:flex-end">
-            <input type="checkbox" id="metAplicado" />
-            <span>Aplicado?</span>
-          </label>
-        </div>
+            <div class="grid">
+              <label for="ensaioRealizado">Ensaio Realizado</label>
+              <select id="ensaioRealizado">
+                <option value="">Selecione...</option>
+                <option value="phi">Pressão Hidrostática (PHI)</option>
+                <option value="junta">Pressão Hidrostática (Junta Elástica)</option>
+                <option value="vácuo">Vácuo</option>
+                <option value="dimensional">Dimensional</option>
+                <option value="marcações">Marcações</option>
+                <option value="achatamento">Achatamento</option>
+                <option value="calor">Comportamento ao calor</option>
+              </select>
 
-        <div class="inline" style="gap:8px; margin-bottom:10px">
-          <button type="button" id="btnAddMetodo" class="secundario">Incluir</button>
-          <button type="button" id="btnLimparMetodo" class="secundario">Limpar</button>
-        </div>
+              <label for="amostrasSelect">Amostras</label>
+              <select id="amostrasSelect">
+                <option value="">Selecione...</option>
+                <option value="08">08</option>
+                <option value="32">32</option>
+              </select>
 
-        <div class="tabela-wrap">
-          <table class="tabela" id="tblMetodos">
-            <thead>
-              <tr>
-                <th style="min-width:220px">Método / Descrição</th>
-                <th>Norma</th>
-                <th>Equipamento</th>
-                <th>Materiais</th>
-                <th>Procedimento</th>
-                <th>Critério</th>
-                <th>Unid.</th>
-                <th>Aplic.</th>
-                <th aria-label="Ações" style="min-width:140px">Ações</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+              <label for="metodo">Método</label>
+              <select id="metodo">
+                <option value="">Selecione...</option>
+                <option value="0,5">0,5 Kgf/cm² × 15 min</option>
+                <option value="2">2 Kgf/cm² × 15 min</option>
+                <option value="-0,3">-0,3 Bar × 15 min</option>
+                <option value="gabarito">Gabarito</option>
+                <option value="visual">Visual</option>
+                <option value="deflexao">Deflexão de (X) 30%</option>
+                <option value="150">150º ± 2º × 30 min</option>
+              </select>
 
-        <p class="hint" style="margin-top:10px">
-          Dica: use descrições objetivas; detalhes extensos podem ir para anexos. Na impressão/PDF este cadastro pode
-          ser ocultado com a classe <code>no-print</code> no fieldset.
-        </p>
+              <label for="resultado">Resultado</label>
+              <select id="resultado">
+                <option value="">Selecione...</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="reprovado">Reprovado</option>
+              </select>
+            </div>
 
-        <!-- 5. Resultados -->
-        <fieldset>
-          <legend>5. Resultados dos Ensaios</legend>
-          <div class="tabela-wrap">
-            <table class="tabela" id="tblResultados">
-              <caption class="sr-only">Tabela de resultados dos ensaios</caption>
-              <thead>
-                <tr>
-                  <th>Ensaio</th>
-                  <th>Resultado obtido</th>
-                  <th>Requisito normativo</th>
-                  <th>Conformidade</th>
-                  <th aria-label="Ações"></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <button type="button" class="secundario" id="btnAddResultado">+ Adicionar resultado</button>
-        </fieldset>
+            <div class="inline" style="gap:8px;">
+              <button type="button" id="btnAddMetodo" class="btn btn--secondary">Incluir</button>
+              <button type="button" id="btnLimparMetodo" class="btn btn--secondary">Limpar</button>
+            </div>
+          </fieldset>
 
-        <!-- 6. Discussão -->
-        <fieldset>
-          <legend>6. Discussão dos Resultados</legend>
-          <textarea name="discussao" rows="4"
-            placeholder="Análise comparativa entre os resultados obtidos e os critérios estabelecidos nas normas de referência."></textarea>
-        </fieldset>
+          <!-- 5. Resultados -->
+          <fieldset>
+            <legend>5. Resultados dos Ensaios</legend>
+            <div class="tabela-wrap">
+              <table class="tabela" id="tblResultados">
+                <caption class="sr-only">Tabela de resultados dos ensaios</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Ensaio</th>
+                    <th scope="col">Resultado obtido</th>
+                    <th scope="col">Requisito normativo</th>
+                    <th scope="col">Conformidade</th>
+                    <th scope="col" aria-label="Ações"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn--secondary" id="btnAddResultado">+ Adicionar resultado</button>
+          </fieldset>
 
-        <!-- 7. Conclusão -->
-        <fieldset>
-          <legend>7. Conclusão</legend>
-          <div class="grid">
-            <label class="inline"><input type="radio" name="statusConclusao" value="Conforme" checked />Conforme</label>
-            <label class="inline"><input type="radio" name="statusConclusao" value="Não conforme" />Não conforme</label>
-          </div>
-          <textarea name="conclusaoObs" rows="3"
-            placeholder="Observações complementares e referências à norma."></textarea>
-        </fieldset>
+          <!-- 6. Discussão -->
+          <fieldset>
+            <legend>6. Discussão dos Resultados</legend>
+            <textarea name="discussao" rows="4" placeholder="Análise comparativa entre os resultados obtidos e os critérios das normas de referência."></textarea>
+          </fieldset>
 
-        <!-- 8. Anexos -->
-        <fieldset>
-          <legend>8. Anexos</legend>
-          <div class="grid">
-            <label>Certificados de calibração (URLs; separe por “;”)
-              <input name="anexosCertificados" placeholder="https://...; https://..." inputmode="url" />
-            </label>
-            <label>Planilhas/Gráficos (URLs; separe por “;”)
-              <input name="anexosPlanilhas" placeholder="https://...; https://..." inputmode="url" />
-            </label>
-            <label>Fotos das amostras (URLs; separe por “;”)
-              <input name="anexosFotos" placeholder="https://...; https://..." inputmode="url" />
-            </label>
-          </div>
-        </fieldset>
+          <!-- 7. Conclusão -->
+          <fieldset>
+            <legend>7. Conclusão</legend>
+            <div class="grid">
+              <label class="inline"><input type="radio" name="statusConclusao" value="Conforme" checked />Conforme</label>
+              <label class="inline"><input type="radio" name="statusConclusao" value="Não conforme" />Não conforme</label>
+            </div>
+            <textarea name="conclusaoObs" rows="3" placeholder="Observações complementares e referências à norma."></textarea>
+          </fieldset>
 
-        <!-- 9. Imagens -->
-        <fieldset>
-          <legend>9. Imagens</legend>
-          <div id="imagens"></div>
-          <!-- Galeria (pré-visualização acessível) -->
-          <div id="galeria" class="galeria" aria-live="polite" aria-label="Galeria de imagens do relatório"></div>
-          <button type="button" class="secundario" id="btnAddImagem">+ Adicionar imagem</button>
-          <p class="hint">Cole uma URL de imagem ou selecione um arquivo. Inclua legenda e texto alternativo.</p>
-        </fieldset>
+          <!-- 8. Anexos -->
+          <fieldset>
+            <legend>8. Anexos</legend>
+            <div class="grid">
+              <label for="anexosCertificados">Certificados de calibração (URLs; separe por “;”)</label>
+              <input id="anexosCertificados" name="anexosCertificados" placeholder="https://...; https://..." inputmode="url" />
 
-        <!-- 10. Tabelas adicionais -->
-        <fieldset>
-          <legend>10. Tabelas adicionais</legend>
-          <div id="tabelasExtras"></div>
-          <button type="button" class="secundario" id="btnAddTabela">+ Adicionar tabela</button>
-        </fieldset>
+              <label for="anexosPlanilhas">Planilhas/Gráficos (URLs; separe por “;”)</label>
+              <input id="anexosPlanilhas" name="anexosPlanilhas" placeholder="https://...; https://..." inputmode="url" />
 
-        <input type="hidden" name="id" />
-      </form>
-    </section>
+              <label for="anexosFotos">Fotos das amostras (URLs; separe por “;”)</label>
+              <input id="anexosFotos" name="anexosFotos" placeholder="https://...; https://..." inputmode="url" />
+            </div>
+          </fieldset>
+
+          <!-- 9. Imagens -->
+          <fieldset>
+            <legend>9. Imagens</legend>
+            <div id="imagens"></div>
+            <button type="button" class="btn btn--secondary" id="btnAddImagem">+ Adicionar imagem</button>
+            <p class="hint">Cole uma URL de imagem ou selecione um arquivo. Inclua legenda e texto alternativo.</p>
+          </fieldset>
+
+          <!-- 10. Tabelas adicionais -->
+          <fieldset>
+            <legend>10. Tabelas adicionais</legend>
+            <div id="tabelasExtras"></div>
+            <button type="button" class="btn btn--secondary" id="btnAddTabela">+ Adicionar tabela</button>
+          </fieldset>
+
+          <input type="hidden" name="id" />
+        </form>
+      </section>
+    </div>
   </main>
 
   <footer class="rodape" role="contentinfo">
-    <small>© <span id="ano"></span> Shiva Plásticos — Relatórios digitais.</small>
+    <div class="container">
+      <small>© <span id="ano"></span> Shiva Plásticos — Relatórios digitais.</small>
+    </div>
   </footer>
 
-  <!-- VLibras -->
-  <div vw class="enabled">
-    <div vw-access-button class="active"></div>
-    <div vw-plugin-wrapper>
-      <div class="vw-plugin-top-wrapper"></div>
-    </div>
-  </div>
-  <!--
   <script>
-    (function initVLibras() {
-      function start() {
-        try { new window.VLibras.Widget('https://vlibras.gov.br/app'); }
-        catch (e) { console.error('VLibras init erro:', e); }
+    // acessibilidade: toggle da barra lateral para telas pequenas
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'btnToggleAside') {
+        document.body.classList.toggle('aside-collapsed');
+        const btn = document.getElementById('btnToggleAside');
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
       }
-      if (window.VLibras && window.VLibras.Widget) { start(); }
-      else {
-        var s = document.createElement('script');
-        s.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
-        s.defer = true;
-        s.onload = start;
-        document.head.appendChild(s);
-      }
-    })();
+    });
   </script>
--->
   <script src="script.js" defer></script>
 </body>
-
 </html>

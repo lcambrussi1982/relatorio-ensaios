@@ -2,41 +2,22 @@
    Paleta p/ PDF e UI
    ========================= */
 const THEME = {
-  brand: "#E1262D",   // vermelho Shiva
+  brand: "#E1262D",
   brandWeak: "#E6F7FF",
   ink: "#0F1E3D",
   muted: "#5C6B84",
   border: "#E2E8F0",
-  sea: "#0077B6",     // azul da onda
-  success: "#22C55E",
+  sea: "#0077B6",
+  success: "#18A864",
   danger: "#E11D48",
 };
 
-/* ======= Normas (combo) – opções iniciais ======= */
-const NORMAS_OPCOES = [
-  "ABNT NBR 5648:2018 =>  Tubos de PVC rígido para condução de água fria — Requisitos",
-  "ABNT NBR 8219 =>       Determinação da resistência ao impacto em tubos plásticos",
-  "ABNT NBR NM 82 =>      Determinação da densidade relativa e massa específica de plásticos",
-  "EN 62321-3-1:2014 =>   Determinação de substâncias restritas em produtos elétricos/eletrônicos",
-  "ABNT NBR NM 84 =>      Determinação da resistência à tração de plásticos",
-  "ABNT NBR 8218 =>       Determinação da resistência à pressão interna em tubos plásticos",
-  "ABNT NBR 14264 =>      Ensaios em conexões de PVC com junta elástica",
-  "ABNT NBR 7371 =>       Determinação da resistência ao impacto em conexões plásticas",
-  "ABNT NBR 5688:2010 =>  Tubos e conexões de PVC-U para águas pluviais, esgoto e ventilação",
-  "ABNT NBR 5626:1998 =>  Instalações prediais de água fria — Projeto, execução e manutenção",
-  "ABNT NBR 5674:2012 =>  Manutenção de edificações — Sistema de gestão de manutenção",
-  "ABNT NBR 7372:1982 =>  Execução de tubulações de pressão de PVC com diferentes tipos de junta",
-  "ABNT NBR 5680:1977 =>  Dimensões de tubos de PVC rígido",
-  "ABNT NBR 5683:1999 =>  Verificação da resistência à pressão hidrostática interna em tubos de PVC",
-  "ABNT NBR 5687:1999 =>  Verificação da estabilidade dimensional de tubos de PVC",
-  "ABNT NBR 6483:1999 =>  Verificação do comportamento ao achatamento em conexões de PVC",
-  "ABNT NBR 7231:1999 =>  Verificação do comportamento ao calor em conexões de PVC",
-  "ABNT NBR 14265:1999 => Verificação do desempenho de juntas soldáveis em conexões de PVC"
-];
-
-
-
-const STORAGE_KEY = "relatorios-ensaio-v4";
+/* =========================
+   Constantes / Storage keys
+   ========================= */
+const STORAGE_KEY = "relatorios-ensaio-v5";
+const STORAGE_USERS = "relatorios-users";
+const STORAGE_SESSION = "relatorios-session";
 
 /* =========================
    Helpers DOM / Utils
@@ -57,24 +38,10 @@ const sanitizeFileName = s => (s||"ensaio").replace(/[^\p{L}\p{N}\-_.]+/gu,"-").
    Microanimações (WAAPI)
    ========================= */
 const Anim = {
-  fadeIn(elm, dur=180, y=6){ elm.animate([
-      {opacity:0, transform:`translateY(${y}px)`},
-      {opacity:1, transform:"translateY(0)"}
-    ], {duration:dur, easing:"ease-out"}); },
-  fadeOut(elm, dur=150, y=6){ return elm.animate([
-      {opacity:1, transform:"translateY(0)"},
-      {opacity:0, transform:`translateY(${y}px)`}
-    ], {duration:dur, easing:"ease-in", fill:"forwards"}).finished; },
-  flash(elm){ elm.animate([
-      {transform:"scale(1)", boxShadow:"none"},
-      {transform:"scale(1.01)"},
-      {transform:"scale(1)", boxShadow:"none"}
-    ],{duration:260, easing:"ease-out"}); },
-  pulse(elm){ elm.animate([
-      {transform:"scale(1)"},
-      {transform:"scale(1.03)"},
-      {transform:"scale(1)"}
-    ],{duration:280, easing:"ease-out"}); },
+  fadeIn(elm, dur=180, y=6){ elm.animate([{opacity:0, transform:`translateY(${y}px)`},{opacity:1, transform:"translateY(0)"}], {duration:dur, easing:"ease-out"}); },
+  fadeOut(elm, dur=150, y=6){ return elm.animate([{opacity:1, transform:"translateY(0)"},{opacity:0, transform:`translateY(${y}px)`}], {duration:dur, easing:"ease-in", fill:"forwards"}).finished; },
+  flash(elm){ elm.animate([{transform:"scale(1)", boxShadow:"none"},{transform:"scale(1.01)"},{transform:"scale(1)", boxShadow:"none"}],{duration:260, easing:"ease-out"}); },
+  pulse(elm){ elm.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:280, easing:"ease-out"}); },
 };
 
 /* =========================
@@ -93,7 +60,7 @@ function toast(msg, type="info"){
   document.body.appendChild(pill);
   Anim.fadeIn(pill,180,4);
   setTimeout(()=> Anim.fadeOut(pill,180,4).then(()=>pill.remove()), 2200);
-  live.textContent = msg; // leitura por leitores de tela
+  live.textContent = msg;
 }
 
 /* =========================
@@ -108,34 +75,35 @@ let atual = novoRelatorio();
 document.addEventListener("DOMContentLoaded", async () => {
   const anoEl = $("#ano"); if (anoEl) anoEl.textContent = new Date().getFullYear();
 
-  // --- AUTH: prepara e aplica estado de sessão ---
   await ensureDefaultAdmin();
   bindAuthEvents();
 
   const sess = getSession();
   if (sess) { lockUI(false); renderWhoAmI(); } else { lockUI(true); }
-  applyRolePermissions(); // aplica bloqueios iniciais
+  applyRolePermissions();
 
-  // --- APP UI ---
-  montarNormasSelect();
+  // APP UI
   preencherForm(atual);
   desenharLista();
 
-  // layout
+  // toggle sidebar
   $("#btnToggleAside")?.addEventListener("click", ()=>{
     document.body.classList.toggle("aside-collapsed");
+    const btn = $("#btnToggleAside");
+    const expanded = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", String(!expanded));
     toast(document.body.classList.contains("aside-collapsed")?"Lista oculta":"Lista visível");
   });
-
-  // normas
-  $("#btnAddNorma")?.addEventListener("click", () => withEditPerm(addNormaCustom));
-  $("#btnDelNorma")?.addEventListener("click", () => withEditPerm(delNormasSelecionadas));
 
   // itens dinâmicos
   $("#btnAddAmostra")?.addEventListener("click", () => withEditPerm(addAmostra));
   $("#btnAddResultado")?.addEventListener("click", () => withEditPerm(addResultado));
   $("#btnAddImagem")?.addEventListener("click", () => withEditPerm(addImagem));
   $("#btnAddTabela")?.addEventListener("click", () => withEditPerm(addTabela));
+
+  // seção “Métodos e Materiais” vira atalho para inserir em Resultados
+  $("#btnAddMetodo")?.addEventListener("click", () => withEditPerm(addMetodoComoResultado));
+  $("#btnLimparMetodo")?.addEventListener("click", limparCamposMetodo);
 
   // ações principais
   $("#btnNovo")?.addEventListener("click", ()=> withEditPerm(()=>{
@@ -155,12 +123,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // filtro da lista
   $("#filtroLista")?.addEventListener("input", desenharLista);
-
-  // Métodos: CRUD em GRID (fieldset 4)
-  initMetodosGrid();
 });
 
-/* guard para ações de edição */
+/* guard de edição */
 function withEditPerm(fn){
   if(!hasRole("admin","editor")){ toast("Sem permissão para editar (viewer).","error"); return; }
   fn?.();
@@ -177,18 +142,15 @@ function novoRelatorio(){
     dataEmissao: "",
     responsavelTecnico: "",
     laboratorio: "",
-    normasReferencia: [],              // multi-select
+    normasReferencia: "",             // string (valor do select)
     amostras: [novaAmostra()],
     objetivo: "",
-    // GRID de Métodos (fieldset 4):
-    // {id, metodo, norma, equip, materiais, proced, criterio, unidade, aplicado}
-    metodos: [],
-    resultados: [],
+    resultados: [],                   // [{ensaio,resultado,requisito,conformidade}]
     discussao: "",
     conclusao: { status:"Conforme", observacoes:"" },
     anexos: { certificados:[], planilhas:[], fotos:[] },
-    imagens: [],                       // [{src, alt, legenda}]
-    tabelasExtras: [],                 // [{titulo, linhas:[[c1,c2],...]}]
+    imagens: [],                      // [{src, alt, legenda}]
+    tabelasExtras: [],                // [{titulo, linhas:[[c1,c2],...]}]
     updatedAt: Date.now(),
   };
 }
@@ -214,61 +176,6 @@ function salvarAtual(){
 }
 
 /* =========================
-   Normas: combo
-   ========================= */
-function montarNormasSelect(){
-  const sel = $("#normasSelect");
-  if(!sel) return;
-  sel.innerHTML = "";
-  NORMAS_OPCOES.forEach(n=>{
-    const opt = el("option",{value:n},n);
-    sel.appendChild(opt);
-  });
-}
-function setNormasSelecionadas(valores=[]){
-  const sel = $("#normasSelect"); if(!sel) return;
-  const set = new Set(valores);
-  $$("option", sel).forEach(o => o.selected = set.has(o.value));
-}
-function getNormasSelecionadas(){
-  const sel = $("#normasSelect"); if(!sel) return [];
-  return Array.from(sel.selectedOptions).map(o=>o.value);
-}
-function addNormaCustom(){
-  const inp = $("#novaNorma");
-  if(!inp) return;
-  const valor = (inp.value||"").trim();
-  if(!valor) return;
-  const sel = $("#normasSelect"); if(!sel) return;
-  let opt = Array.from(sel.options).find(o=>o.value.toLowerCase()===valor.toLowerCase());
-  if(!opt){
-    opt = el("option",{value:valor},valor);
-    sel.appendChild(opt);
-    Anim.flash(sel);
-  }
-  opt.selected = true;
-  inp.value = "";
-  toast("Norma adicionada/selecionada", "success");
-}
-function delNormasSelecionadas(){
-  const sel = $("#normasSelect"); if(!sel) return;
-  const selecionados = Array.from(sel.selectedOptions);
-  if(!selecionados.length){ toast("Selecione pelo menos uma norma para excluir.","error"); return; }
-
-  const nomes = selecionados.map(o=>o.text).join("\n- ");
-  const ok = confirm(`Você tem certeza que deseja excluir as seguintes norma(s)?\n\n- ${nomes}`);
-  if(!ok) return;
-
-  (async ()=>{
-    for(const opt of selecionados){
-      await Anim.fadeOut(opt,120,2);
-      opt.remove();
-    }
-    toast("Normas removidas");
-  })();
-}
-
-/* =========================
    Form <-> Estado
    ========================= */
 function preencherForm(r){
@@ -278,10 +185,10 @@ function preencherForm(r){
   f.dataEmissao.value=r.dataEmissao||"";
   f.responsavelTecnico.value=r.responsavelTecnico||"";
   f.laboratorio.value=r.laboratorio||"";
-  setNormasSelecionadas(r.normasReferencia||[]);
+  const normasSel = $("#normasReferencia"); if (normasSel) normasSel.value = r.normasReferencia || "";
   f.objetivo.value=r.objetivo||"";
   f.discussao.value=r.discussao||"";
-  f.statusConclusao.value=r.conclusao?.status||"Conforme";
+  (f.querySelector(`input[name="statusConclusao"][value="${r.conclusao?.status||"Conforme"}"]`)||{}).checked = true;
   f.conclusaoObs.value=r.conclusao?.observacoes||"";
   f.anexosCertificados.value=(r.anexos?.certificados||[]).join("; ");
   f.anexosPlanilhas.value=(r.anexos?.planilhas||[]).join("; ");
@@ -298,10 +205,6 @@ function preencherForm(r){
       Anim.fadeIn(card,140,6);
     });
   }
-
-  // MÉTODOS (GRID)
-  MetGrid.state = Array.isArray(r.metodos) ? structuredClone(r.metodos) : [];
-  MetGrid.render();
 
   // Resultados
   const tbodyRes = $("#tblResultados tbody");
@@ -336,7 +239,6 @@ function preencherForm(r){
     });
   }
 
-  // Reaplica bloqueio se viewer
   applyRolePermissions();
 }
 
@@ -349,7 +251,7 @@ function coletarForm(){
     dataEmissao:f.dataEmissao.value,
     responsavelTecnico:f.responsavelTecnico.value.trim(),
     laboratorio:f.laboratorio.value.trim(),
-    normasReferencia:getNormasSelecionadas(),
+    normasReferencia: $("#normasReferencia")?.value || "",
 
     amostras: $$("[data-amostra]",$("#amostras")).map(card=>({
       descricao:$(".a-descricao",card).value.trim(),
@@ -364,9 +266,6 @@ function coletarForm(){
 
     objetivo:f.objetivo.value.trim(),
 
-    // Métodos do GRID (estado em memória)
-    metodos: structuredClone(MetGrid.state),
-
     resultados:$$("#tblResultados tbody tr").map(tr=>({
       ensaio:$(".r-ensaio",tr).value.trim(),
       resultado:$(".r-resultado",tr).value.trim(),
@@ -375,7 +274,7 @@ function coletarForm(){
     })),
 
     discussao:f.discussao.value.trim(),
-    conclusao:{ status:f.statusConclusao.value, observacoes:f.conclusaoObs.value.trim() },
+    conclusao:{ status:(f.querySelector('input[name="statusConclusao"]:checked')?.value||"Conforme"), observacoes:f.conclusaoObs.value.trim() },
 
     anexos:{
       certificados:splitList(f.anexosCertificados.value),
@@ -402,6 +301,42 @@ function coletarForm(){
 }
 
 /* =========================
+   Métodos -> adiciona em Resultados
+   ========================= */
+function addMetodoComoResultado(){
+  const ensaio = $("#ensaioRealizado")?.value || "";
+  const requisito = $("#metodo")?.value || "";
+  const resultadoSel = $("#resultado")?.value || ""; // "aprovado" | "reprovado" | ""
+  const amostrasTxt = $("#amostrasSelect")?.value || "";
+
+  if(!ensaio){ toast("Selecione o ‘Ensaio realizado’.","error"); return; }
+  if(!resultadoSel){ toast("Selecione o ‘Resultado’.","error"); return; }
+
+  // mapeia pro grid de Resultados
+  const conformidade = (resultadoSel.toLowerCase()==="aprovado") ? "Conforme" : "Não conforme";
+  const resultadoTxt = amostrasTxt ? `${resultadoSel.toUpperCase()} • Amostras: ${amostrasTxt}` : resultadoSel.toUpperCase();
+
+  // cria linha
+  const tr = resultadoRow({
+    ensaio,
+    resultado: resultadoTxt,
+    requisito,
+    conformidade
+  });
+  $("#tblResultados tbody").appendChild(tr);
+  Anim.fadeIn(tr,140,6);
+
+  toast("Método incluído em ‘Resultados’.","success");
+}
+
+function limparCamposMetodo(){
+  $("#ensaioRealizado") && ($("#ensaioRealizado").value = "");
+  $("#amostrasSelect") && ($("#amostrasSelect").value = "");
+  $("#metodo") && ($("#metodo").value = "");
+  $("#resultado") && ($("#resultado").value = "");
+}
+
+/* =========================
    Amostras
    ========================= */
 function amostraCard(a={},idx=0){
@@ -414,7 +349,7 @@ function amostraCard(a={},idx=0){
   <label>Marca <input class="a-marca" value="${a.marca||""}"></label>
   <label>Lote/Nº amostra <input class="a-lote" value="${a.lote||""}"></label>
   <label>Qtd. <input class="a-quantidade" value="${a.quantidade||""}" type="number" min="0"></label>
-  <div><button type="button" class="secundario" data-remove>Remover</button></div>`;
+  <div><button type="button" class="btn btn--secondary" data-remove>Remover</button></div>`;
   $("button[data-remove]",d).addEventListener("click", async ()=>{
     await Anim.fadeOut(d,150,6); d.remove(); toast("Amostra removida");
   });
@@ -427,15 +362,15 @@ function addAmostra(){
 }
 
 /* =========================
-   Resultados
+   Resultados (tabela)
    ========================= */
 function resultadoRow(r={}){
   const tr=el("tr");
   tr.innerHTML=`<td><input class="r-ensaio" value="${r.ensaio||""}" placeholder="Ensaio"></td>
   <td><input class="r-resultado" value="${r.resultado||""}" placeholder="Resultado"></td>
-  <td><input class="r-requisito" value="${r.requisito||""}" placeholder="Requisito"></td>
+  <td><input class="r-requisito" value="${r.requisito||""}" placeholder="Requisito normativo"></td>
   <td><select class="r-conf"><option ${r.conformidade==="Conforme"?"selected":""}>Conforme</option><option ${r.conformidade==="Não conforme"?"selected":""}>Não conforme</option></select></td>
-  <td><button type="button" class="secundario del">Excluir</button></td>`;
+  <td><button type="button" class="btn-mini danger del">Excluir</button></td>`;
   $(".del",tr).addEventListener("click", async ()=>{
     const ok = confirm("Excluir esta linha de resultado?");
     if(!ok) return;
@@ -461,7 +396,7 @@ function imagemCard(obj={src:"",alt:"",legenda:""}){
     </label>
     <label>Legenda <input class="img-cap" value="${obj.legenda||""}" placeholder="Ex.: Foto da amostra A"/></label>
     <label>Texto alternativo (acessibilidade) <input class="img-alt" value="${obj.alt||""}" placeholder="Descrição breve"/></label>
-    <div><button type="button" class="secundario" data-remove>Remover imagem</button></div>`;
+    <div><button type="button" class="btn btn--secondary" data-remove>Remover imagem</button></div>`;
   $("button[data-remove]",div).addEventListener("click", async ()=>{
     const ok = confirm("Remover esta imagem?");
     if(!ok) return;
@@ -498,8 +433,8 @@ function tabelaCard(data={titulo:"",linhas:[["",""]]}){
   });
   html+=`</tbody></table>
     <div style="display:flex;gap:8px;margin-top:8px;">
-      <button type="button" class="secundario add-row">+ Linha</button>
-      <button type="button" class="secundario" data-remove>Remover tabela</button>
+      <button type="button" class="btn btn--secondary add-row">+ Linha</button>
+      <button type="button" class="btn btn--secondary" data-remove>Remover tabela</button>
     </div>`;
   div.innerHTML=html;
   $(".add-row",div).addEventListener("click",()=>{
@@ -535,9 +470,9 @@ function desenharLista(){
       const li=el("li");
       li.innerHTML=`<strong>${r.numeroRelatorio||"(sem nº)"} – ${r.responsavelTecnico||"?"}</strong>
         <span class="meta">${new Date(r.updatedAt).toLocaleString()} • ${r.laboratorio||""}</span>
-        <div class="row-actions">
-          <button data-open class="secundario">Abrir</button>
-          <button data-delete class="danger">Apagar</button>
+        <div class="row-actions" style="display:flex;gap:8px;margin-top:8px;">
+          <button data-open class="btn-mini">Abrir</button>
+          <button data-delete class="btn-mini danger">Apagar</button>
         </div>`;
       $("button[data-open]",li).addEventListener("click",()=>{
         atual=r; preencherForm(atual); toast("Relatório carregado");
@@ -573,7 +508,7 @@ function importarJSON(ev){
   reader.onload=()=>{ try{
     const data=JSON.parse(reader.result);
     atual={...novoRelatorio(),...data};
-    montarNormasSelect(); preencherForm(atual); salvarAtual();
+    preencherForm(atual); salvarAtual();
     toast("JSON importado","success");
   }catch{ toast("Arquivo inválido.","error"); } ev.target.value=""; };
   reader.readAsText(f);
@@ -584,7 +519,7 @@ function importarJSON(ev){
    ========================= */
 function loadImageAsDataURL(url){
   return new Promise((resolve, reject) => {
-    if (/^data:image\//i.test(url)) return resolve(url); // já é base64
+    if (/^data:image\//i.test(url)) return resolve(url);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -602,7 +537,7 @@ function loadImageAsDataURL(url){
 }
 
 /* =========================
-   PDF (texto) – com métodos do GRID
+   PDF (texto)
    ========================= */
 async function gerarPDF(){
   const {jsPDF}=window.jspdf;
@@ -652,7 +587,7 @@ async function gerarPDF(){
   kv("Data de emissão", r.dataEmissao);
   kv("Responsável Técnico", r.responsavelTecnico);
   kv("Laboratório", r.laboratorio);
-  kv("Normas de referência", (r.normasReferencia||[]).join("; "));
+  kv("Normas de referência", r.normasReferencia || "-");
 
   title("2. Identificação da(s) Amostra(s)");
   (r.amostras||[]).forEach((a,i)=>{
@@ -672,27 +607,7 @@ async function gerarPDF(){
   paragraph(r.objetivo);
 
   title("4. Métodos e Materiais Empregados");
-  const ativos = (r.metodos||[]).filter(m=>m.aplicado);
-  if (!ativos.length) {
-    paragraph("Nenhum método marcado como aplicado.");
-  } else {
-    ativos.forEach((m) => {
-      ensureSpace(60);
-      doc.setFont("helvetica","bold"); doc.setTextColor(THEME.ink);
-      doc.text(`• ${m.metodo || "-"}`, MARGIN_X, y); y += 12;
-      doc.setFont("helvetica","normal");
-      const linhas = [
-        m.norma     && `Norma/Ref.: ${m.norma}`,
-        m.equip     && `Equipamento: ${m.equip}`,
-        m.materiais && `Materiais: ${m.materiais}`,
-        m.proced    && `Procedimento: ${m.proced}`,
-        m.criterio  && `Critério/Requisito: ${m.criterio}`,
-        m.unidade   && `Unidade: ${m.unidade}`,
-      ].filter(Boolean).join("\n");
-      paragraph(linhas || "-");
-      y += 2;
-    });
-  }
+  paragraph("Cadastro interno utilizado como atalho para ‘Resultados’.");
 
   title("5. Resultados dos Ensaios");
   const rows = r.resultados || [];
@@ -722,89 +637,42 @@ async function gerarPDF(){
   paragraph(`Planilhas/Gráficos: ${(anex.planilhas||[]).join("; ") || "-"}`);
   paragraph(`Fotos das amostras: ${(anex.fotos||[]).join("; ") || "-"}`);
 
-  // ===== 9. Imagens — lado a lado (imagem à esquerda; legenda+ALT à direita) com robustez
   if ((r.imagens||[]).length){
     title("9. Imagens");
-
-    const IMG_W = 180;       // largura da imagem
-    const IMG_MAX_H = 150;   // altura máxima da imagem
-    const GAP_X = 16;        // espaço entre imagem e texto
-    const LINE_H = 12;
-
-    try {
-      for (let i=0;i<r.imagens.length;i++){
-        try{
-          const it = r.imagens[i];
-          const url = (typeof it === "string") ? it : it.src;
-          const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i+1}`;
-          const altText = (typeof it === "object" ? (it.alt||"") : "");
-
-          const dataUrl = await loadImageAsDataURL(url);
-          const img = new Image(); img.src = dataUrl;
-          await new Promise(res => { if (img.complete) res(); else img.onload = res; });
-
-          const ratio = img.naturalHeight / img.naturalWidth || 1;
-          const imgH = Math.min(IMG_W * ratio, IMG_MAX_H);
-          const TEXT_W = Math.max(10, (PAGE_W - 2*MARGIN_X) - IMG_W - GAP_X);
-
-          // bloco cabeçalho/ALT
-          doc.setFont("helvetica","bold");  doc.setFontSize(10); doc.setTextColor(THEME.ink);
-          const capTitle = `Figura ${i+1}${legenda ? ` — ${legenda}` : ""}`;
-          const capLines = doc.splitTextToSize(capTitle, TEXT_W);
-
-          doc.setFont("helvetica","normal"); doc.setFontSize(9);
-          const altLines = doc.splitTextToSize(altText ? `ALT: ${altText}` : "(ALT ausente)", TEXT_W);
-
-          const textBlockH = (capLines.length * LINE_H) + 4 + (altLines.length * LINE_H);
-          const rowH = Math.max(imgH, textBlockH);
-
-          ensureSpace(rowH + 18);
-
-          const imgX = MARGIN_X;
-          const textX = MARGIN_X + IMG_W + GAP_X;
-
-          // imagem + moldura
-          doc.setDrawColor(210);
-          doc.addImage(dataUrl, "JPEG", imgX, y, IMG_W, imgH);
-          doc.rect(imgX-1, y-1, IMG_W+2, imgH+2);
-
-          // legenda
-          let ty = y;
-          doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(THEME.ink);
-          capLines.forEach((ln, idx)=> doc.text(ln, textX, ty + (idx*LINE_H)));
-          ty += capLines.length * LINE_H + 4;
-
-          // ALT (vermelho se ausente)
-          doc.setFont("helvetica","normal"); doc.setFontSize(9);
-          doc.setTextColor(altText ? 90 : THEME.danger);
-          altLines.forEach((ln, idx)=> doc.text(ln, textX, ty + (idx*LINE_H)));
-
-          y += rowH + 18;
-          doc.setTextColor(THEME.ink);
-        }catch{
-          ensureSpace(20);
-          doc.setFontSize(10); doc.setTextColor(150);
-          doc.text(`(Não foi possível carregar uma imagem)`, MARGIN_X, y);
-          y += 16; doc.setTextColor(THEME.ink);
-        }
+    const thumbW = 220, thumbMaxH = 160, gap = 14;
+    let col = 0;
+    for (let i=0;i<r.imagens.length;i++){
+      const it = r.imagens[i];
+      const url = (typeof it === "string") ? it : it.src;
+      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i+1}`;
+      try{
+        const dataUrl = await loadImageAsDataURL(url);
+        const img = new Image(); img.src = dataUrl;
+        await new Promise(res => { if (img.complete) res(); else img.onload = res; });
+        const ratio = img.naturalHeight / img.naturalWidth;
+        const h = Math.min(thumbW * ratio, thumbMaxH);
+        const w = thumbW;
+        ensureSpace(h + 18);
+        const x = MARGIN_X + col * (w + gap);
+        doc.addImage(dataUrl, "JPEG", x, y, w, h);
+        doc.setFontSize(9); doc.setTextColor(100);
+        doc.text(legenda, x, y + h + 10);
+        doc.setTextColor(THEME.ink);
+        if (col === 1){ y += h + 26; col = 0; } else { col = 1; }
+      }catch{
+        ensureSpace(14);
+        doc.setFontSize(10); doc.setTextColor(150);
+        doc.text(`(Não foi possível carregar a imagem ${i+1})`, MARGIN_X, y);
+        y += 16; doc.setTextColor(THEME.ink);
       }
-    } catch {
-      ensureSpace(16);
-      doc.setFontSize(10); doc.setTextColor(150);
-      doc.text("(Falha ao processar imagens — prosseguindo…)", MARGIN_X, y);
-      y += 14; doc.setTextColor(THEME.ink);
     }
-
-    // reset estilo
-    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
+    if (col === 1) y += 8;
   }
 
-  // ===== 10. Tabelas adicionais
   if ((r.tabelasExtras||[]).length){
     title("10. Tabelas adicionais");
     const colW = (PAGE_W - 2*MARGIN_X - 20) / 2;
     const lineH = 14;
-
     (r.tabelasExtras||[]).forEach((tbl, idxTbl) => {
       ensureSpace(18);
       doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
@@ -812,7 +680,7 @@ async function gerarPDF(){
       doc.text(titulo, MARGIN_X, y); y += 12;
       doc.setFont("helvetica","normal"); doc.setFontSize(10);
 
-      const linhas = Array.isArray(tbl?.linhas) ? tbl.linhas : (Array.isArray(tbl) ? tbl : []);
+      const linhas = tbl?.linhas || tbl || [];
       if (!linhas.length){ paragraph("(sem dados)"); return; }
 
       ensureSpace(lineH);
@@ -844,7 +712,7 @@ async function gerarPDF(){
 }
 
 /* =========================
-   PDF (layout HTML) — alternativa visual do DOM
+   PDF (layout HTML)
    ========================= */
 function gerarPDFhtml(){
   const relatorio=$("#formRelatorio");
@@ -855,150 +723,6 @@ function gerarPDFhtml(){
     html2canvas:{scale:2, useCORS:true},
     jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
   }).from(relatorio).save();
-}
-
-/* ===========================================================
-   MÉTODOS – GRID (fieldset 4) – CRUD com animações
-   =========================================================== */
-const MetGrid = {
-  state: [],      // [{id,metodo,norma,equip,materiais,proced,criterio,unidade,aplicado}]
-  editId: null,
-  inputs: {
-    metodo:    "#metMetodo",
-    norma:     "#metNorma",
-    equip:     "#metEquip",
-    materiais: "#metMateriais",
-    proced:    "#metProced",
-    criterio:  "#metCriterio",
-    unidade:   "#metUnidade",
-    aplicado:  "#metAplicado",
-  },
-  getVals(){
-    return {
-      metodo:    $(this.inputs.metodo).value.trim(),
-      norma:     $(this.inputs.norma).value.trim(),
-      equip:     $(this.inputs.equip).value.trim(),
-      materiais: $(this.inputs.materiais).value.trim(),
-      proced:    $(this.inputs.proced).value.trim(),
-      criterio:  $(this.inputs.criterio).value.trim(),
-      unidade:   $(this.inputs.unidade).value.trim(),
-      aplicado:  $(this.inputs.aplicado).checked,
-    };
-  },
-  setVals(v={}){
-    $(this.inputs.metodo).value     = v.metodo||"";
-    $(this.inputs.norma).value      = v.norma||"";
-    $(this.inputs.equip).value      = v.equip||"";
-    $(this.inputs.materiais).value  = v.materiais||"";
-    $(this.inputs.proced).value     = v.proced||"";
-    $(this.inputs.criterio).value   = v.criterio||"";
-    $(this.inputs.unidade).value    = v.unidade||"";
-    $(this.inputs.aplicado).checked = !!v.aplicado;
-  },
-  clear(){ this.setVals({}); this.editId=null; $("#btnAddMetodo").textContent="Incluir"; },
-  save(){
-    const v = this.getVals();
-    if(!v.metodo){ toast("Informe o campo ‘Método / Descrição’.","error"); return; }
-
-    if(this.editId){
-      const i = this.state.findIndex(m=>m.id===this.editId);
-      if(i>=0){
-        if (this.state.some((m,ix)=>ix!==i && m.metodo.toLowerCase()===v.metodo.toLowerCase())){
-          toast("Já existe um método com essa descrição.","error"); return;
-        }
-        const ok = confirm(`Confirmar alteração?\n\nDe:\n- ${this.state[i].metodo}\n\nPara:\n- ${v.metodo}`);
-        if(!ok) return;
-        this.state[i] = {...this.state[i], ...v};
-        this.render();
-        this.clear();
-        toast("Método alterado","success");
-      }
-    } else {
-      if (this.state.some(m=>m.metodo.toLowerCase()===v.metodo.toLowerCase())){
-        toast("Já existe um método com essa descrição.","error"); return;
-      }
-      this.state.push({id:uid(), ...v});
-      this.render(true);
-      this.clear();
-      toast("Método incluído","success");
-    }
-  },
-  edit(id){
-    const item = this.state.find(m=>m.id===id); if(!item) return;
-    this.setVals(item);
-    this.editId = id;
-    $("#btnAddMetodo").textContent = "Salvar alteração";
-    $(this.inputs.metodo).focus();
-    Anim.pulse($(this.inputs.metodo));
-  },
-  remove(id){
-    const item = this.state.find(m=>m.id===id); if(!item) return;
-    const ok = confirm(`Tem certeza que deseja excluir o método?\n\n- ${item.metodo}`);
-    if(!ok) return;
-    this.state = this.state.filter(m=>m.id!==id);
-    this.render();
-    toast("Método excluído");
-  },
-  toggleAplicado(id, checked){
-    const item = this.state.find(m=>m.id===id); if(!item) return;
-    item.aplicado = checked;
-  },
-  render(scrollToEnd=false){
-    const tbody = $("#tblMetodos tbody"); if(!tbody) return;
-    if(!this.state.length){
-      tbody.innerHTML = `<tr><td colspan="9" class="small">Nenhum método cadastrado. Use o formulário acima para incluir.</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = this.state.map(m=>`
-      <tr data-id="${m.id}">
-        <td>${escapeHtml(m.metodo||"")}</td>
-        <td>${escapeHtml(m.norma||"")}</td>
-        <td>${escapeHtml(m.equip||"")}</td>
-        <td>${escapeHtml(m.materiais||"")}</td>
-        <td>${escapeHtml(m.proced||"")}</td>
-        <td>${escapeHtml(m.criterio||"")}</td>
-        <td>${escapeHtml(m.unidade||"")}</td>
-        <td>
-          <label class="inline">
-            <input type="checkbox" data-id="${m.id}" ${m.aplicado?"checked":""}/>
-            <span class="small">Aplic.</span>
-          </label>
-        </td>
-        <td>
-          <div class="inline" style="gap:8px">
-            <button type="button" class="btn-mini" data-action="edit" data-id="${m.id}">Alterar</button>
-            <button type="button" class="btn-mini danger" data-action="delete" data-id="${m.id}">Excluir</button>
-          </div>
-        </td>
-      </tr>
-    `).join("");
-
-    $$("#tblMetodos tbody tr").forEach((tr,i)=> Anim.fadeIn(tr,100+(i*10),4));
-    if(scrollToEnd){ tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight; }
-  }
-};
-
-function initMetodosGrid(){
-  const btnAdd = $("#btnAddMetodo");
-  const btnClr = $("#btnLimparMetodo");
-  const table  = $("#tblMetodos");
-
-  btnAdd?.addEventListener("click", ()=> withEditPerm(()=> MetGrid.save()));
-  btnClr?.addEventListener("click", ()=> withEditPerm(()=> MetGrid.clear()));
-
-  table?.addEventListener("click", (ev)=>{
-    const btn = ev.target.closest("button[data-action]");
-    if(!btn) return;
-    const id = btn.getAttribute("data-id");
-    if(btn.dataset.action==="edit")   withEditPerm(()=> MetGrid.edit(id));
-    if(btn.dataset.action==="delete") withEditPerm(()=> MetGrid.remove(id));
-  });
-
-  table?.addEventListener("change", (ev)=>{
-    const cb = ev.target.closest('input[type="checkbox"][data-id]');
-    if(!cb) return;
-    withEditPerm(()=> MetGrid.toggleAplicado(cb.getAttribute("data-id"), cb.checked));
-  });
 }
 
 /* =========================
@@ -1013,16 +737,12 @@ function escapeHtml(s){
 /* =========================
    AUTH (localStorage)
    ========================= */
-const STORAGE_USERS = "relatorios-users";
-const STORAGE_SESSION = "relatorios-session";
-
 function nowIso(){ return new Date().toISOString(); }
 async function sha256(txt){
   const enc = new TextEncoder().encode(txt);
   const buf = await crypto.subtle.digest("SHA-256", enc);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
-
 function loadUsers(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_USERS))||[] }catch{ return []; }
 }
@@ -1042,14 +762,7 @@ async function ensureDefaultAdmin(){
   const users = loadUsers();
   if(!users.length){
     const passhash = await sha256("admin123");
-    users.push({
-      id: uid(),
-      nome: "Administrador",
-      email: "admin@local",
-      pass: passhash,
-      role: "admin",
-      updatedAt: nowIso()
-    });
+    users.push({ id: uid(), nome: "Administrador", email: "admin@local", pass: passhash, role: "admin", updatedAt: nowIso() });
     saveUsers(users);
   }
 }
@@ -1071,14 +784,11 @@ function hasRole(...roles){
   const s = getSession();
   return !!(s && roles.includes(s.role));
 }
-
-/* aplica/retira disabled nos elementos conforme papel */
 function applyRolePermissions(){
   const canEdit = hasRole("admin","editor");
 
   // campos do formulário
   $$("#formRelatorio input, #formRelatorio textarea, #formRelatorio select, #formRelatorio button").forEach(el=>{
-    // whitelist sempre habilitada:
     const id = el.id || "";
     const always = ["btnPDF","btnPDFhtml","btnImprimir","btnExportar"];
     if(always.includes(id)) return;
@@ -1104,7 +814,6 @@ async function doLogin(email, password){
   setSession({ id:user.id, nome:user.nome, email:user.email, role:user.role, ts:Date.now() });
   renderWhoAmI();
 }
-
 function doLogout(){
   setSession(null);
   lockUI(true);
@@ -1126,7 +835,6 @@ function usersRenderTable(){
       <td>${new Date(u.updatedAt).toLocaleString()}</td>
     </tr>`).join("");
 }
-
 function usersFillForm(u){
   $("#uNome").value = u?.nome || "";
   $("#uEmail").value = u?.email || "";
@@ -1134,7 +842,6 @@ function usersFillForm(u){
   $("#uRole").value = u?.role || "editor";
   $("#userForm").dataset.editingId = u?.id || "";
 }
-
 async function usersSaveOrUpdate(){
   if(!hasRole("admin")){ toast("Apenas administradores podem gerenciar usuários.","error"); return; }
   const nome = $("#uNome").value.trim();
@@ -1173,7 +880,6 @@ async function usersSaveOrUpdate(){
   usersFillForm(null);
   toast("Usuário salvo/atualizado","success");
 }
-
 function usersDelete(){
   if(!hasRole("admin")){ toast("Apenas administradores podem excluir usuários.","error"); return; }
   const editingId = $("#userForm").dataset.editingId || null;
@@ -1190,8 +896,7 @@ function usersDelete(){
   usersFillForm(null);
   toast("Usuário excluído");
 }
-
-/* ===== Export/Import ===== */
+/* Export/Import usuários */
 function exportUsersJSON(){
   const data = loadUsers();
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
@@ -1215,10 +920,8 @@ function importUsersJSON(ev){
   ev.target.value=""; };
   reader.readAsText(f);
 }
-
-/* ===== Bind de eventos de Auth e Usuários ===== */
+/* Bind Auth / Users */
 function bindAuthEvents(){
-  // Login
   $("#loginForm")?.addEventListener("submit", async (e)=>{
     e.preventDefault();
     const email = $("#loginEmail").value.trim();
@@ -1234,24 +937,16 @@ function bindAuthEvents(){
       toast(err.message || "Falha no login.","error");
     }
   });
-
-  // Logout
   $("#btnLogout")?.addEventListener("click", doLogout);
-
-  // Abrir gerenciador de usuários (admin)
   $("#btnUsers")?.addEventListener("click", ()=>{
     if(!hasRole("admin")){ toast("Apenas administradores.","error"); return; }
     usersRenderTable();
     usersFillForm(null);
     $("#dlgUsers")?.showModal();
   });
-
-  // Ações no gerenciador
   $("#btnUserSave")?.addEventListener("click", usersSaveOrUpdate);
   $("#btnUserNew")?.addEventListener("click", ()=> usersFillForm(null));
   $("#btnUserDelete")?.addEventListener("click", usersDelete);
-
-  // Seleção de linha da tabela de usuários
   $("#tblUsers")?.addEventListener("click", (e)=>{
     const tr = e.target.closest("tr[data-id]");
     if(!tr) return;
@@ -1259,8 +954,6 @@ function bindAuthEvents(){
     const u = loadUsers().find(x=>x.id===id);
     if(u) usersFillForm(u);
   });
-
-  // Export/Import de usuários (card de login)
   $("#btnExportUsers")?.addEventListener("click", exportUsersJSON);
   $("#inputImportUsers")?.addEventListener("change", importUsersJSON);
 }
