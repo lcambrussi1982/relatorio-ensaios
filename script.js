@@ -868,3 +868,53 @@ function topbarShadow(){
   onScroll();
   addEventListener("scroll", onScroll, { passive: true });
 }
+function gerarNumeroRelatorio() {
+  const anoAtual = new Date().getFullYear();
+  const key = "controleRelatorios";
+  const dados = JSON.parse(localStorage.getItem(key)) || { ano: anoAtual, contador: 0 };
+
+  if (dados.ano !== anoAtual) {
+    dados.ano = anoAtual;
+    dados.contador = 1;
+  } else {
+    dados.contador += 1;
+  }
+
+  localStorage.setItem(key, JSON.stringify(dados));
+
+  const numero = dados.contador.toString().padStart(8, '0'); // 8 dígitos
+  return `${numero}/${anoAtual}`;
+}
+
+// Exemplo de uso:
+document.addEventListener("DOMContentLoaded", () => {
+  const numeroInput = document.getElementById("numeroRelatorio");
+  if (numeroInput && !numeroInput.value) {
+    numeroInput.value = gerarNumeroRelatorio();
+  }
+});
+function salvarAtual() {
+  const form = document.getElementById("formRelatorio");
+  if (form && !form.reportValidity()) return;
+
+  // Gera número se não tiver
+  if (!form.numeroRelatorio.value) {
+    form.numeroRelatorio.value = gerarNumeroRelatorio();
+  }
+
+  // Coleta e salva relatório
+  const data = coletarForm();
+  data.updatedAt = Date.now();
+  const ix = relatorios.findIndex(r => r.id === data.id);
+  if (ix >= 0) relatorios[ix] = data; else relatorios.unshift(data);
+  persistAll();
+  desenharLista();
+  toast("Relatório salvo!", "success");
+
+  // Reseta formulário para novo relatório
+  setTimeout(() => {
+    atual = novoRelatorio(); // Novo objeto limpo
+    preencherForm(atual);    // Limpa na tela
+    form.numeroRelatorio.value = gerarNumeroRelatorio(); // Novo número
+  }, 200);
+}
