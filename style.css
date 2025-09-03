@@ -6,7 +6,7 @@
   --navy-800: #15476f;
   --navy-700: #1c5b8e;
   --navy-600: #2b74b6;
-  --navy-100: #e7eff7;
+  --navy-100: #dae8f6;
 
   --red-700: #cb0f16;
   --red-650: #d4151c;
@@ -355,6 +355,8 @@ legend {
   grid-column: 1/-1
 }
 
+
+
 @media (max-width:1024px) {
   .grid>label {
     grid-column: span 12
@@ -398,6 +400,14 @@ input:hover,
 select:hover,
 textarea:hover {
   transform: translateY(-1px)
+}
+
+
+/* Espaço acima do botão Adicionar Amostra */
+#amostras + #btnAddAmostra {
+  margin-top: 14px;
+  display: inline-flex;
+  align-self: start;
 }
 
 select {
@@ -551,7 +561,7 @@ select {
     box-shadow: none
   }
 
-  .tabela thead th {
+    .tabela thead th {
     background: #eee !important;
     color: #000 !important
   }
