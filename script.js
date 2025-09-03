@@ -1,23 +1,24 @@
+/* ======================================================================
+   Shiva Conexões — Relatórios (script limpo, sem login/usuários)
+   ====================================================================== */
+
 /* =========================
-   Paleta p/ PDF e UI
+   Paleta p/ UI e PDF
    ========================= */
 const THEME = {
-  brand: "#E1262D",
-  brandWeak: "#E6F7FF",
+  brand: "#E1262D",     // vermelho Shiva
+  brandWeak: "#FFECEE",
   ink: "#0F1E3D",
   muted: "#5C6B84",
   border: "#E2E8F0",
-  sea: "#0077B6",
   success: "#18A864",
   danger: "#E11D48",
 };
 
 /* =========================
-   Constantes / Storage keys
+   Storage
    ========================= */
 const STORAGE_KEY = "relatorios-ensaio-v5";
-const STORAGE_USERS = "relatorios-users";
-const STORAGE_SESSION = "relatorios-session";
 
 /* =========================
    Helpers DOM / Utils
@@ -40,31 +41,29 @@ const sanitizeFileName = s => (s||"ensaio").replace(/[^\p{L}\p{N}\-_.]+/gu,"-").
 const Anim = {
   fadeIn(elm, dur=180, y=6){ elm.animate([{opacity:0, transform:`translateY(${y}px)`},{opacity:1, transform:"translateY(0)"}], {duration:dur, easing:"ease-out"}); },
   fadeOut(elm, dur=150, y=6){ return elm.animate([{opacity:1, transform:"translateY(0)"},{opacity:0, transform:`translateY(${y}px)`}], {duration:dur, easing:"ease-in", fill:"forwards"}).finished; },
-  flash(elm){ elm.animate([{transform:"scale(1)", boxShadow:"none"},{transform:"scale(1.01)"},{transform:"scale(1)", boxShadow:"none"}],{duration:260, easing:"ease-out"}); },
   pulse(elm){ elm.animate([{transform:"scale(1)"},{transform:"scale(1.03)"},{transform:"scale(1)"}],{duration:280, easing:"ease-out"}); },
 };
 
 /* =========================
-   Toast acessível (aria-live)
+   Toast acessível
    ========================= */
 function toast(msg, type="info"){
   const live = $("#ariaLive");
-  if(!live) return alert(msg);
   const pill = el("div", {className:"toast", role:"status"});
   pill.style.cssText = `
     position:fixed; right:16px; bottom:16px; z-index:99999;
-    background:${type==="error"?THEME.danger:(type==="success"?THEME.success:THEME.sea)};
+    background:${type==="error"?THEME.danger:(type==="success"?THEME.success:"#0f172a")};
     color:#fff; padding:10px 12px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,.12);
-    font: 600 13px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;`;
+    font:600 13px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;`;
   pill.textContent = msg;
   document.body.appendChild(pill);
   Anim.fadeIn(pill,180,4);
-  setTimeout(()=> Anim.fadeOut(pill,180,4).then(()=>pill.remove()), 2200);
-  live.textContent = msg;
+  setTimeout(()=> Anim.fadeOut(pill,180,4).then(()=>pill.remove()), 2300);
+  if (live) { live.textContent = ""; setTimeout(()=> live.textContent = msg, 12); }
 }
 
 /* =========================
-   Estado geral
+   Estado
    ========================= */
 let relatorios = loadAll();
 let atual = novoRelatorio();
@@ -72,21 +71,21 @@ let atual = novoRelatorio();
 /* =========================
    Init
    ========================= */
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
+  // ano no rodapé
   const anoEl = $("#ano"); if (anoEl) anoEl.textContent = new Date().getFullYear();
 
-  await ensureDefaultAdmin();
-  bindAuthEvents();
+  // UI polishes: cor, logo maior, alinhamentos, tabela responsiva, sombra topbar
+  injectUIStyles();
+  alignAddResultadoBtn();
+  tableResponsiveLabels();
+  topbarShadow();
 
-  const sess = getSession();
-  if (sess) { lockUI(false); renderWhoAmI(); } else { lockUI(true); }
-  applyRolePermissions();
-
-  // APP UI
+  // Carrega UI
   preencherForm(atual);
   desenharLista();
 
-  // toggle sidebar
+  // Toggle aside
   $("#btnToggleAside")?.addEventListener("click", ()=>{
     document.body.classList.toggle("aside-collapsed");
     const btn = $("#btnToggleAside");
@@ -95,41 +94,72 @@ document.addEventListener("DOMContentLoaded", async () => {
     toast(document.body.classList.contains("aside-collapsed")?"Lista oculta":"Lista visível");
   });
 
-  // itens dinâmicos
-  $("#btnAddAmostra")?.addEventListener("click", () => withEditPerm(addAmostra));
-  $("#btnAddResultado")?.addEventListener("click", () => withEditPerm(addResultado));
-  $("#btnAddImagem")?.addEventListener("click", () => withEditPerm(addImagem));
-  $("#btnAddTabela")?.addEventListener("click", () => withEditPerm(addTabela));
+  // Dinâmicos
+  $("#btnAddAmostra")?.addEventListener("click", addAmostra);
+  $("#btnAddResultado")?.addEventListener("click", addResultado);
+  $("#btnAddImagem")?.addEventListener("click", addImagem);
+  $("#btnNovoAnexo")?.addEventListener("click", addAnexo);
 
-  // seção “Métodos e Materiais” vira atalho para inserir em Resultados
-  $("#btnAddMetodo")?.addEventListener("click", () => withEditPerm(addMetodoComoResultado));
+  // “Métodos e Materiais” -> atalho p/ Resultados
+  $("#btnAddMetodo")?.addEventListener("click", addMetodoComoResultado);
   $("#btnLimparMetodo")?.addEventListener("click", limparCamposMetodo);
 
-  // ações principais
-  $("#btnNovo")?.addEventListener("click", ()=> withEditPerm(()=>{
-    atual = novoRelatorio();
-    preencherForm(atual);
-    toast("Relatório novo criado", "success");
-  }));
-  $("#btnSalvar")?.addEventListener("click", ()=> withEditPerm(salvarAtual));
+// Ações principais
+$("#btnSalvar")?.addEventListener("click", salvarAtual);
 
-  $("#btnExportar")?.addEventListener("click", exportarJSON);
-  $("#inputImportar")?.addEventListener("change", (e)=> withEditPerm(()=>importarJSON(e)));
-  $("#btnImprimir")?.addEventListener("click", ()=>window.print());
+// Imprimir: gera o PDF e manda imprimir o PDF (não o layout da página)
+$("#btnImprimir")?.addEventListener("click", async () => {
+  try {
+    const blob = await gerarPDF({ returnBlob: true }); // << retorna Blob do PDF
+    if (!blob) throw new Error("Falha ao gerar PDF.");
 
-  // PDFs
-  $("#btnPDF")?.addEventListener("click", gerarPDF);
-  $("#btnPDFhtml")?.addEventListener("click", gerarPDFhtml);
+    const url = URL.createObjectURL(blob);
 
-  // filtro da lista
-  $("#filtroLista")?.addEventListener("input", desenharLista);
+    // iframe invisível para chamar a impressão do PDF
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.src = url;
+
+    iframe.onload = () => {
+      // dá um pequeno tempo para o PDF renderizar dentro do iframe
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          // fallback: abre em nova aba
+          window.open(url, "_blank");
+        } finally {
+          // libera o objeto URL depois de um tempo
+          setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        }
+      }, 250);
+    };
+
+    document.body.appendChild(iframe);
+    // remove o iframe depois de um tempo
+    setTimeout(() => iframe.remove(), 15_000);
+  } catch (err) {
+    console.error(err);
+    toast("Não foi possível imprimir o PDF.", "error");
+  }
 });
 
-/* guard de edição */
-function withEditPerm(fn){
-  if(!hasRole("admin","editor")){ toast("Sem permissão para editar (viewer).","error"); return; }
-  fn?.();
-}
+// Botão PDF: baixa o arquivo
+$("#btnPDF")?.addEventListener("click", () => gerarPDF({ save: true }));
+
+
+  // PDF (texto)
+  $("#btnPDF")?.addEventListener("click", gerarPDF);
+
+  // Filtro lista
+  $("#filtroLista")?.addEventListener("input", desenharLista);
+});
 
 /* =========================
    Modelo
@@ -142,15 +172,16 @@ function novoRelatorio(){
     dataEmissao: "",
     responsavelTecnico: "",
     laboratorio: "",
-    normasReferencia: "",             // string (valor do select)
+    normasReferencia: "",
     amostras: [novaAmostra()],
-    objetivo: "",
-    resultados: [],                   // [{ensaio,resultado,requisito,conformidade}]
-    discussao: "",
-    conclusao: { status:"Conforme", observacoes:"" },
-    anexos: { certificados:[], planilhas:[], fotos:[] },
-    imagens: [],                      // [{src, alt, legenda}]
-    tabelasExtras: [],                // [{titulo, linhas:[[c1,c2],...]}]
+    objetivo: "",                // (pode não existir no HTML)
+    resultados: [],              // [{ensaio,resultado,requisito,conformidade}]
+    discussao: "",               // idem
+    conclusao: { status:"Conforme", observacoes:"" }, // idem
+    anexos: { certificados:[], planilhas:[], fotos:[] }, // campos de texto
+    anexosList: [],              // anexos de arquivo (Base64)
+    imagens: [],                 // [{src, alt, legenda}]
+    tabelasExtras: [],           // [{titulo, linhas:[[c1,c2],...]}]
     updatedAt: Date.now(),
   };
 }
@@ -163,37 +194,35 @@ function loadAll(){
 function persistAll(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(relatorios));
 }
-function salvarAtual(){
-  const form = $("#formRelatorio");
-  if(form && !form.reportValidity()) return;
-  const data = coletarForm();
-  data.updatedAt = Date.now();
-  const ix = relatorios.findIndex(r=>r.id===data.id);
-  if(ix>=0) relatorios[ix]=data; else relatorios.unshift(data);
-  persistAll();
-  desenharLista();
-  toast("Relatório salvo!", "success");
-}
 
 /* =========================
    Form <-> Estado
    ========================= */
 function preencherForm(r){
   const f=$("#formRelatorio"); if(!f) return;
-  f.numeroRelatorio.value=r.numeroRelatorio||"";
-  f.revisao.value=r.revisao||"";
-  f.dataEmissao.value=r.dataEmissao||"";
-  f.responsavelTecnico.value=r.responsavelTecnico||"";
-  f.laboratorio.value=r.laboratorio||"";
+
+  // Campos base
+  f.numeroRelatorio && (f.numeroRelatorio.value=r.numeroRelatorio||"");
+  f.revisao && (f.revisao.value=r.revisao||"");
+  f.dataEmissao && (f.dataEmissao.value=r.dataEmissao||"");
+  f.responsavelTecnico && (f.responsavelTecnico.value=r.responsavelTecnico||"");
+  f.laboratorio && (f.laboratorio.value=r.laboratorio||"");
   const normasSel = $("#normasReferencia"); if (normasSel) normasSel.value = r.normasReferencia || "";
-  f.objetivo.value=r.objetivo||"";
-  f.discussao.value=r.discussao||"";
-  (f.querySelector(`input[name="statusConclusao"][value="${r.conclusao?.status||"Conforme"}"]`)||{}).checked = true;
-  f.conclusaoObs.value=r.conclusao?.observacoes||"";
-  f.anexosCertificados.value=(r.anexos?.certificados||[]).join("; ");
-  f.anexosPlanilhas.value=(r.anexos?.planilhas||[]).join("; ");
-  f.anexosFotos.value=(r.anexos?.fotos||[]).join("; ");
-  f.id.value=r.id;
+
+  // Campos opcionais
+  f.objetivo && (f.objetivo.value=r.objetivo||"");
+  f.discussao && (f.discussao.value=r.discussao||"");
+  const conclRadio = (f.querySelector(`input[name="statusConclusao"][value="${r.conclusao?.status||"Conforme"}"]`));
+  conclRadio && (conclRadio.checked=true);
+  f.conclusaoObs && (f.conclusaoObs.value=r.conclusao?.observacoes||"");
+
+  // Anexos (texto)
+  f.anexosCertificados && (f.anexosCertificados.value=(r.anexos?.certificados||[]).join("; "));
+  f.anexosPlanilhas && (f.anexosPlanilhas.value=(r.anexos?.planilhas||[]).join("; "));
+  f.anexosFotos && (f.anexosFotos.value=(r.anexos?.fotos||[]).join("; "));
+
+  // ID oculto (se tiver)
+  f.id && (f.id.value=r.id);
 
   // Amostras
   const amDiv = $("#amostras");
@@ -228,7 +257,7 @@ function preencherForm(r){
     });
   }
 
-  // Tabelas extras
+  // Tabelas extras (opcional)
   const extras = $("#tabelasExtras");
   if(extras){
     extras.innerHTML="";
@@ -239,96 +268,103 @@ function preencherForm(r){
     });
   }
 
-  applyRolePermissions();
+  // Anexos de arquivo (lista)
+  renderAnexosList(r.anexosList||[]);
 }
 
 function coletarForm(){
   const f=$("#formRelatorio");
   return {
-    id:f.id.value||uid(),
-    numeroRelatorio:f.numeroRelatorio.value.trim(),
-    revisao:f.revisao.value.trim(),
-    dataEmissao:f.dataEmissao.value,
-    responsavelTecnico:f.responsavelTecnico.value.trim(),
-    laboratorio:f.laboratorio.value.trim(),
+    id:(f.id?.value)||uid(),
+    numeroRelatorio:f.numeroRelatorio?.value.trim()||"",
+    revisao:f.revisao?.value.trim()||"",
+    dataEmissao:f.dataEmissao?.value||"",
+    responsavelTecnico:f.responsavelTecnico?.value.trim()||"",
+    laboratorio:f.laboratorio?.value.trim()||"",
     normasReferencia: $("#normasReferencia")?.value || "",
 
     amostras: $$("[data-amostra]",$("#amostras")).map(card=>({
-      descricao:$(".a-descricao",card).value.trim(),
-      tipo:$(".a-tipo",card).value.trim(),
-      dimensao:$(".a-dimensao",card).value.trim(),
-      cor:$(".a-cor",card).value.trim(),
-      processo:$(".a-processo",card).value.trim(),
-      marca:$(".a-marca",card).value.trim(),
-      lote:$(".a-lote",card).value.trim(),
-      quantidade:$(".a-quantidade",card).value.trim()
+      descricao:$(".a-descricao",card)?.value.trim()||"",
+      tipo:$(".a-tipo",card)?.value.trim()||"",
+      dimensao:$(".a-dimensao",card)?.value.trim()||"",
+      cor:$(".a-cor",card)?.value.trim()||"",
+      processo:$(".a-processo",card)?.value.trim()||"",
+      marca:$(".a-marca",card)?.value.trim()||"",
+      lote:$(".a-lote",card)?.value.trim()||"",
+      quantidade:$(".a-quantidade",card)?.value.trim()||""
     })),
 
-    objetivo:f.objetivo.value.trim(),
-
+    objetivo:f.objetivo?.value.trim()||"",
     resultados:$$("#tblResultados tbody tr").map(tr=>({
-      ensaio:$(".r-ensaio",tr).value.trim(),
-      resultado:$(".r-resultado",tr).value.trim(),
-      requisito:$(".r-requisito",tr).value.trim(),
-      conformidade:$(".r-conf",tr).value
+      ensaio:$(".r-ensaio",tr)?.value.trim()||"",
+      resultado:$(".r-resultado",tr)?.value.trim()||"",
+      requisito:$(".r-requisito",tr)?.value.trim()||"",
+      conformidade:$(".r-conf",tr)?.value||"Conforme"
     })),
-
-    discussao:f.discussao.value.trim(),
-    conclusao:{ status:(f.querySelector('input[name="statusConclusao"]:checked')?.value||"Conforme"), observacoes:f.conclusaoObs.value.trim() },
+    discussao:f.discussao?.value.trim()||"",
+    conclusao:{
+      status:(f.querySelector('input[name="statusConclusao"]:checked')?.value||"Conforme"),
+      observacoes:f.conclusaoObs?.value.trim()||""
+    },
 
     anexos:{
-      certificados:splitList(f.anexosCertificados.value),
-      planilhas:splitList(f.anexosPlanilhas.value),
-      fotos:splitList(f.anexosFotos.value),
+      certificados: f.anexosCertificados ? splitList(f.anexosCertificados.value) : [],
+      planilhas:    f.anexosPlanilhas ? splitList(f.anexosPlanilhas.value) : [],
+      fotos:        f.anexosFotos ? splitList(f.anexosFotos.value) : [],
     },
 
     imagens: $$("[data-img]").map(w=>({
-      src:$(".img-url",w).value.trim(),
-      alt:$(".img-alt",w)?.value.trim(),
-      legenda:$(".img-cap",w)?.value.trim()
+      src:$(".img-url",w)?.value.trim()||"",
+      alt:$(".img-alt",w)?.value.trim()||"",
+      legenda:$(".img-cap",w)?.value.trim()||""
     })).filter(i=>i.src),
 
     tabelasExtras: $$("[data-tabela]").map(box=>({
-      titulo:$(".tb-title",box).value.trim(),
+      titulo:$(".tb-title",box)?.value.trim()||"",
       linhas: $$("tbody tr",box).map(tr=>[
         (tr.cells[0]?.innerText||"").trim(),
         (tr.cells[1]?.innerText||"").trim()
       ])
     })),
 
+    anexosList: _coletarAnexosList(),
+
     updatedAt:Date.now()
   };
 }
 
+function salvarAtual(){
+  const form = $("#formRelatorio");
+  if(form && !form.reportValidity()) return;
+  const data = coletarForm();
+  data.updatedAt = Date.now();
+  const ix = relatorios.findIndex(r=>r.id===data.id);
+  if(ix>=0) relatorios[ix]=data; else relatorios.unshift(data);
+  persistAll();
+  desenharLista();
+  toast("Relatório salvo!", "success");
+}
+
 /* =========================
-   Métodos -> adiciona em Resultados
+   Métodos -> Resultados
    ========================= */
 function addMetodoComoResultado(){
   const ensaio = $("#ensaioRealizado")?.value || "";
   const requisito = $("#metodo")?.value || "";
-  const resultadoSel = $("#resultado")?.value || ""; // "aprovado" | "reprovado" | ""
+  const resultadoSel = $("#resultado")?.value || "";
   const amostrasTxt = $("#amostrasSelect")?.value || "";
 
   if(!ensaio){ toast("Selecione o ‘Ensaio realizado’.","error"); return; }
   if(!resultadoSel){ toast("Selecione o ‘Resultado’.","error"); return; }
 
-  // mapeia pro grid de Resultados
   const conformidade = (resultadoSel.toLowerCase()==="aprovado") ? "Conforme" : "Não conforme";
   const resultadoTxt = amostrasTxt ? `${resultadoSel.toUpperCase()} • Amostras: ${amostrasTxt}` : resultadoSel.toUpperCase();
 
-  // cria linha
-  const tr = resultadoRow({
-    ensaio,
-    resultado: resultadoTxt,
-    requisito,
-    conformidade
-  });
+  const tr = resultadoRow({ ensaio, resultado: resultadoTxt, requisito, conformidade });
   $("#tblResultados tbody").appendChild(tr);
   Anim.fadeIn(tr,140,6);
-
   toast("Método incluído em ‘Resultados’.","success");
 }
-
 function limparCamposMetodo(){
   $("#ensaioRealizado") && ($("#ensaioRealizado").value = "");
   $("#amostrasSelect") && ($("#amostrasSelect").value = "");
@@ -372,8 +408,7 @@ function resultadoRow(r={}){
   <td><select class="r-conf"><option ${r.conformidade==="Conforme"?"selected":""}>Conforme</option><option ${r.conformidade==="Não conforme"?"selected":""}>Não conforme</option></select></td>
   <td><button type="button" class="btn-mini danger del">Excluir</button></td>`;
   $(".del",tr).addEventListener("click", async ()=>{
-    const ok = confirm("Excluir esta linha de resultado?");
-    if(!ok) return;
+    if(!confirm("Excluir esta linha de resultado?")) return;
     await Anim.fadeOut(tr,130,4); tr.remove();
   });
   return tr;
@@ -396,10 +431,9 @@ function imagemCard(obj={src:"",alt:"",legenda:""}){
     </label>
     <label>Legenda <input class="img-cap" value="${obj.legenda||""}" placeholder="Ex.: Foto da amostra A"/></label>
     <label>Texto alternativo (acessibilidade) <input class="img-alt" value="${obj.alt||""}" placeholder="Descrição breve"/></label>
-    <div><button type="button" class="btn btn--secondary" data-remove>Remover imagem</button></div>`;
+    <div><button type="button" class="btn btn--secondary" data-remove>Remover</button></div>`;
   $("button[data-remove]",div).addEventListener("click", async ()=>{
-    const ok = confirm("Remover esta imagem?");
-    if(!ok) return;
+    if(!confirm("Remover esta imagem?")) return;
     await Anim.fadeOut(div,130,4); div.remove();
   });
   $(".img-file",div).addEventListener("change", e=>{
@@ -417,7 +451,7 @@ function addImagem(){
 }
 
 /* =========================
-   Tabelas Extras
+   Tabelas Extras (se existir caixa no HTML)
    ========================= */
 function tabelaCard(data={titulo:"",linhas:[["",""]]}){
   const div=el("div",{className:"extra-table"}); div.dataset.tabela="1";
@@ -444,16 +478,81 @@ function tabelaCard(data={titulo:"",linhas:[["",""]]}){
     Anim.fadeIn(tr,120,4);
   });
   $("button[data-remove]",div).addEventListener("click", async ()=>{
-    const ok = confirm("Remover esta tabela?");
-    if(!ok) return;
+    if(!confirm("Remover esta tabela?")) return;
     await Anim.fadeOut(div,130,4); div.remove();
   });
   return div;
 }
 function addTabela(){
+  const host = $("#tabelasExtras");
+  if(!host){ toast("Área de ‘Tabelas adicionais’ não existe neste layout.","error"); return; }
   const t = tabelaCard({});
-  $("#tabelasExtras").appendChild(t);
+  host.appendChild(t);
   Anim.fadeIn(t,140,6);
+}
+
+/* =========================
+   Anexos (lista com arquivo)
+   ========================= */
+function addAnexo(){
+  const desc = $("#descricao")?.value.trim();
+  const file = $("#arquivo")?.files?.[0];
+  if(!desc) { toast("Informe a descrição do anexo.","error"); return; }
+  if(!file) { toast("Selecione um arquivo.","error"); return; }
+  const r = new FileReader();
+  r.onload = ()=> {
+    const item = { descricao: desc, name: file.name, dataUrl: r.result };
+    const data = coletarForm();
+    data.anexosList = [...(data.anexosList||[]), item];
+    const ix = relatorios.findIndex(x=>x.id===data.id);
+    if(ix>=0) relatorios[ix] = data; else relatorios.unshift(data);
+    persistAll(); renderAnexosList(data.anexosList);
+    $("#descricao").value = ""; $("#arquivo").value = "";
+    toast("Anexo adicionado.","success");
+  };
+  r.readAsDataURL(file);
+}
+function renderAnexosList(list){
+  const wrap = $("#anexos"); if(!wrap) return;
+  wrap.querySelector(".anexos-list")?.remove();
+  const ul = document.createElement("ul"); ul.className="anexos-list";
+  ul.style.cssText = "list-style:none;padding-left:0;margin-top:8px;display:grid;gap:6px;";
+  (list||[]).forEach((a,i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:#fff;">
+      <div style="min-width:0;">
+        <strong style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.descricao)}</strong>
+        <small style="color:var(--muted);">${escapeHtml(a.name||"arquivo")}</small>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <a download="${sanitizeFileName(a.name||'anexo')}" href="${a.dataUrl}" class="btn-mini">Baixar</a>
+        <button class="btn-mini danger" data-del="${i}">Excluir</button>
+      </div>
+    </div>`;
+    ul.appendChild(li);
+  });
+  wrap.appendChild(ul);
+  ul.addEventListener("click",(e)=>{
+    const b = e.target.closest("button[data-del]"); if(!b) return;
+    const idx = Number(b.dataset.del);
+    const data = coletarForm();
+    data.anexosList.splice(idx,1);
+    const ix = relatorios.findIndex(x=>x.id===data.id);
+    if(ix>=0) relatorios[ix] = data; else relatorios.unshift(data);
+    persistAll(); renderAnexosList(data.anexosList);
+    toast("Anexo removido");
+  });
+}
+function _coletarAnexosList(){
+  const items = [];
+  $$(".anexos-list li").forEach(li=>{
+    const t = li.querySelector("strong")?.textContent || "";
+    const n = li.querySelector("small")?.textContent || "";
+    const a = li.querySelector("a[download]");
+    const href = a?.getAttribute("href") || "";
+    items.push({ descricao:t, name:n, dataUrl:href });
+  });
+  return items;
 }
 
 /* =========================
@@ -478,7 +577,6 @@ function desenharLista(){
         atual=r; preencherForm(atual); toast("Relatório carregado");
       });
       $("button[data-delete]",li).addEventListener("click", async ()=>{
-        if(!hasRole("admin","editor")){ toast("Sem permissão para excluir.","error"); return; }
         if(!confirm("Apagar este relatório?")) return;
         await Anim.fadeOut(li,130,4);
         relatorios=relatorios.filter(x=>x.id!==r.id);
@@ -491,34 +589,11 @@ function desenharLista(){
 }
 
 /* =========================
-   Exportar / Importar
-   ========================= */
-function exportarJSON(){
-  const data=coletarForm();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`relatorio-${sanitizeFileName(data.numeroRelatorio)||"ensaio"}.json`;
-  a.click(); URL.revokeObjectURL(a.href);
-  toast("JSON exportado","success");
-}
-function importarJSON(ev){
-  const f=ev.target.files?.[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=()=>{ try{
-    const data=JSON.parse(reader.result);
-    atual={...novoRelatorio(),...data};
-    preencherForm(atual); salvarAtual();
-    toast("JSON importado","success");
-  }catch{ toast("Arquivo inválido.","error"); } ev.target.value=""; };
-  reader.readAsText(f);
-}
-
-/* =========================
-   Util p/ PDF: carregar imagem (URL -> dataURL)
+   PDF (texto) — jsPDF
    ========================= */
 function loadImageAsDataURL(url){
   return new Promise((resolve, reject) => {
+    if (!url) return reject(new Error("URL vazia"));
     if (/^data:image\//i.test(url)) return resolve(url);
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -535,34 +610,22 @@ function loadImageAsDataURL(url){
     img.src = url;
   });
 }
-
-// =========================
-// Util p/ pegar a LOGO em base64
-// =========================
-async function getLogoDataURL() {
-  // tenta pegar a imagem que está no topo do HTML
-  const logoEl = document.querySelector('.brand img');
-  const src = logoEl?.src || 'shiva_logo_transparente.png'; // fallback
-
-  try {
-    return await loadImageAsDataURL(src);
-  } catch {
-    return null; // se falhar, ignora a logo
-  }
-}
-
 function getImageFormatFromDataURL(dataUrl){
-  // retorna "PNG" ou "JPEG" para o jsPDF.addImage
   if (typeof dataUrl !== "string") return "JPEG";
   if (dataUrl.startsWith("data:image/png")) return "PNG";
   return "JPEG";
 }
+async function getLogoDataURL() {
+  const logoEl = document.querySelector('.brand img');
+  const src = logoEl?.src || 'Shiva.png'; // fallback
+  try { return await loadImageAsDataURL(src); } catch { return null; }
+}
 
-
-/* =========================
-   PDF (texto)
-   ========================= */
 async function gerarPDF(){
+  if (!window.jspdf || !window.jspdf.jsPDF){
+    toast("jsPDF não está carregado. Confira a tag no <head>.", "error");
+    return;
+  }
   const { jsPDF } = window.jspdf;
   const r = coletarForm();
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -572,101 +635,44 @@ async function gerarPDF(){
   const MARGIN_X = 40, MARGIN_TOP = 50, MARGIN_BOTTOM = 40;
   let y = MARGIN_TOP;
 
-  // 🔹 carrega a logo da topbar (ou 'shiva_logo_transparente.png' como fallback)
   const LOGO_DURL = await getLogoDataURL();
   const LOGO_FMT  = LOGO_DURL ? getImageFormatFromDataURL(LOGO_DURL) : null;
-
-  // mede proporção da logo para escalar corretamente
-  let logoDims = { w: 110, h: 32 }; // tamanho alvo (pode ajustar)
+  let logoDims = { w: 110, h: 32 };
   if (LOGO_DURL) {
-    const img = new Image();
-    img.src = LOGO_DURL;
+    const img = new Image(); img.src = LOGO_DURL;
     await new Promise(res => (img.complete ? res() : (img.onload = res)));
-    // preserva proporção usando largura alvo = 110pt
     const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
     logoDims.h = Math.round(logoDims.w * ratio);
   }
 
   const addHeader = () => {
     let headerBottomY;
-
     if (LOGO_DURL) {
-      // desenha logo à esquerda
       doc.addImage(LOGO_DURL, LOGO_FMT, MARGIN_X, y - 20, logoDims.w, logoDims.h);
-      // título alinhado à direita da logo
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(THEME.ink);
-      const titleX = MARGIN_X + logoDims.w + 12;
-      const titleY = Math.max(y + 8, y - 20 + logoDims.h * 0.6);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(THEME.ink);
+      const titleX = MARGIN_X + logoDims.w + 12; const titleY = Math.max(y + 8, y - 20 + logoDims.h * 0.6);
       doc.text("Relatório de Ensaio – PVC-U", titleX, titleY);
       headerBottomY = Math.max(y - 20 + logoDims.h, titleY + 4);
     } else {
-      // sem logo: título padrão
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(THEME.ink);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(THEME.ink);
       doc.text("Relatório de Ensaio – PVC-U", MARGIN_X, y);
       headerBottomY = y + 10;
     }
-
-    // linha divisória
-    doc.setDrawColor(190);
-    doc.line(MARGIN_X, headerBottomY + 6, PAGE_W - MARGIN_X, headerBottomY + 6);
-
-    // cursor após o header
-    y = headerBottomY + 24;
-    doc.setFont("helvetica", "normal");
+    doc.setDrawColor(190); doc.line(MARGIN_X, headerBottomY + 6, PAGE_W - MARGIN_X, headerBottomY + 6);
+    y = headerBottomY + 24; doc.setFont("helvetica", "normal");
   };
-
   const addFooter = () => {
     const pageNum = doc.internal.getNumberOfPages();
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text(
-      `Relatório ${r.numeroRelatorio || "-"} • pág. ${pageNum}`,
-      PAGE_W - MARGIN_X,
-      PAGE_H - 20,
-      { align: "right" }
-    );
-
-    // (opcional) mini-logo no rodapé
-    if (LOGO_DURL) {
-      doc.addImage(LOGO_DURL, LOGO_FMT, MARGIN_X, PAGE_H - 32, 60, Math.max(18, Math.round(60 * (logoDims.h / Math.max(1, logoDims.w)))));
-    }
+    doc.setFontSize(9); doc.setTextColor(120);
+    doc.text(`Relatório ${r.numeroRelatorio || "-"} • pág. ${pageNum}`, PAGE_W - MARGIN_X, PAGE_H - 20, { align: "right" });
+    if (LOGO_DURL) { doc.addImage(LOGO_DURL, LOGO_FMT, MARGIN_X, PAGE_H - 32, 60, Math.max(18, Math.round(60 * (logoDims.h / Math.max(1, logoDims.w))))); }
   };
+  const ensureSpace = (h=18)=>{ if (y + h > PAGE_H - MARGIN_BOTTOM) { addFooter(); doc.addPage(); y = MARGIN_TOP; addHeader(); } };
+  const title = (t) => { ensureSpace(24); doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(THEME.brand); doc.text(t, MARGIN_X, y); y += 14; doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(THEME.ink); };
+  const paragraph = (txt, width=PAGE_W - 2*MARGIN_X, lineH=14) => { const lines = doc.splitTextToSize(txt || "-", width); lines.forEach(()=>ensureSpace(lineH)); doc.text(lines, MARGIN_X, y); y += lines.length * lineH + 6; };
+  const kv = (k,v) => paragraph(`${k}: ${v||"-"}`);
 
-  const ensureSpace = (h = 18) => {
-    if (y + h > PAGE_H - MARGIN_BOTTOM) {
-      addFooter();
-      doc.addPage();
-      y = MARGIN_TOP;
-      addHeader();
-    }
-  };
-
-  const title = (t) => {
-    ensureSpace(24);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(THEME.brand);
-    doc.text(t, MARGIN_X, y);
-    y += 14;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(THEME.ink);
-  };
-
-  const paragraph = (txt, width = PAGE_W - 2 * MARGIN_X, lineH = 14) => {
-    const lines = doc.splitTextToSize(txt || "-", width);
-    lines.forEach(() => ensureSpace(lineH));
-    doc.text(lines, MARGIN_X, y);
-    y += lines.length * lineH + 6;
-  };
-
-  const kv = (k, v) => paragraph(`${k}: ${v || "-"}`);
-
-  // ===== CONTEÚDO =====
+  // Conteúdo
   addHeader();
 
   title("1. Identificação do Relatório");
@@ -678,116 +684,113 @@ async function gerarPDF(){
   kv("Normas de referência", r.normasReferencia || "-");
 
   title("2. Identificação da(s) Amostra(s)");
-  (r.amostras || []).forEach((a, i) => {
-    paragraph(
-      `Amostra ${i + 1}: ${[
-        a.descricao && `Descrição: ${a.descricao}`,
-        a.tipo && `Tipo: ${a.tipo}`,
-        a.dimensao && `Dimensão nominal: ${a.dimensao}`,
-        a.cor && `Cor: ${a.cor}`,
-        a.processo && `Processo: ${a.processo}`,
-        a.marca && `Marca: ${a.marca}`,
-        a.lote && `Lote/Nº: ${a.lote}`,
-        a.quantidade && `Qtd.: ${a.quantidade}`,
-      ]
-        .filter(Boolean)
-        .join(" | ")}`
-    );
+  (r.amostras||[]).forEach((a,i)=>{
+    paragraph(`Amostra ${i+1}: ${[
+      a.descricao && `Descrição: ${a.descricao}`,
+      a.tipo && `Tipo: ${a.tipo}`,
+      a.dimensao && `Dimensão nominal: ${a.dimensao}`,
+      a.cor && `Cor: ${a.cor}`,
+      a.processo && `Processo: ${a.processo}`,
+      a.marca && `Marca: ${a.marca}`,
+      a.lote && `Lote/Nº: ${a.lote}`,
+      a.quantidade && `Qtd.: ${a.quantidade}`
+    ].filter(Boolean).join(" | ")}`);
   });
 
-  title("3. Objetivo do Ensaio");
-  paragraph(r.objetivo);
-
-  title("4. Métodos e Materiais Empregados");
-  paragraph("Cadastro interno utilizado como atalho para ‘Resultados’.");
-
-  title("5. Resultados dos Ensaios");
-  const rows = r.resultados || [];
-  if (!rows.length) {
-    paragraph("Sem resultados informados.");
+  if ($("#formRelatorio").objetivo){ // imprime essa seção só se existir no HTML
+    title("3. Objetivo do Ensaio");
+    paragraph(r.objetivo);
+    title("4. Métodos e Materiais Empregados");
+    paragraph("Cadastro interno utilizado como atalho para ‘Resultados’.");
+    title("5. Resultados dos Ensaios");
   } else {
-    rows.forEach((res) => {
-      ensureSpace(42);
-      doc.setFont("helvetica", "bold");
-      doc.text(`• ${res.ensaio || "-"}`, MARGIN_X, y);
-      y += 14;
-      doc.setFont("helvetica", "normal");
-      paragraph(`Resultado: ${res.resultado || "-"}`);
-      paragraph(`Requisito normativo: ${res.requisito || "-"}`);
-      doc.setTextColor(res.conformidade === "Conforme" ? THEME.success : THEME.danger);
-      paragraph(`Conformidade: ${res.conformidade || "-"}`);
-      doc.setTextColor(THEME.ink);
-      y += 2;
-    });
+    title("3. Resultados dos Ensaios");
   }
 
-  title("6. Discussão dos Resultados");
-  paragraph(r.discussao);
+  const rows = r.resultados || [];
+  if (!rows.length) paragraph("Sem resultados informados.");
+  else rows.forEach(res => {
+    ensureSpace(42);
+    doc.setFont("helvetica","bold"); doc.text(`• ${res.ensaio || "-"}`, MARGIN_X, y); y += 14;
+    doc.setFont("helvetica","normal");
+    paragraph(`Resultado: ${res.resultado || "-"}`);
+    paragraph(`Requisito normativo: ${res.requisito || "-"}`);
+    doc.setTextColor(res.conformidade === "Conforme" ? THEME.success : THEME.danger);
+    paragraph(`Conformidade: ${res.conformidade || "-"}`);
+    doc.setTextColor(THEME.ink);
+    y += 2;
+  });
 
-  title("7. Conclusão");
-  paragraph(`Status: ${r.conclusao?.status || "-"}`);
-  paragraph(r.conclusao?.observacoes || "");
+  if ($("#formRelatorio").discussao){
+    title("6. Discussão dos Resultados"); paragraph(r.discussao);
+    title("7. Conclusão"); paragraph(`Status: ${r.conclusao?.status || "-"}`); paragraph(r.conclusao?.observacoes || "");
+    title("8. Anexos (categorias)");
+  } else {
+    title("4. Anexos (categorias)");
+  }
+  paragraph(`Certificados: ${(r.anexos?.certificados||[]).join("; ") || "-"}`);
+  paragraph(`Planilhas/Gráficos: ${(r.anexos?.planilhas||[]).join("; ") || "-"}`);
+  paragraph(`Fotos das amostras: ${(r.anexos?.fotos||[]).join("; ") || "-"}`);
 
-  title("8. Anexos");
-  const anex = r.anexos || {};
-  paragraph(`Certificados: ${(anex.certificados || []).join("; ") || "-"}`);
-  paragraph(`Planilhas/Gráficos: ${(anex.planilhas || []).join("; ") || "-"}`);
-  paragraph(`Fotos das amostras: ${(anex.fotos || []).join("; ") || "-"}`);
+  if ((r.anexosList||[]).length){
+    title("Anexos (arquivos)");
+    (r.anexosList||[]).forEach(a => paragraph(`• ${a.descricao} (${a.name||"arquivo"})`));
+  }
 
-  if ((r.imagens || []).length) {
-    title("9. Imagens");
+  title("Imagens");
+  if ((r.imagens||[]).length){
     const thumbW = 220, thumbMaxH = 160, gap = 14;
     let col = 0;
-    for (let i = 0; i < r.imagens.length; i++) {
+    for (let i=0;i<r.imagens.length;i++){
       const it = r.imagens[i];
-      const url = typeof it === "string" ? it : it.src;
-      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i + 1}`;
-      try {
+      const url = (typeof it === "string") ? it : it.src;
+      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i+1}`;
+      try{
         const dataUrl = await loadImageAsDataURL(url);
         const img = new Image(); img.src = dataUrl;
-        await new Promise(res => (img.complete ? res() : (img.onload = res)));
-
+        await new Promise(res => { if (img.complete) res(); else img.onload = res; });
         const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
         const h = Math.min(thumbW * ratio, thumbMaxH);
         const w = thumbW;
-
         ensureSpace(h + 18);
         const x = MARGIN_X + col * (w + gap);
         doc.addImage(dataUrl, getImageFormatFromDataURL(dataUrl), x, y, w, h);
         doc.setFontSize(9); doc.setTextColor(100);
         doc.text(legenda, x, y + h + 10);
         doc.setTextColor(THEME.ink);
-
-        if (col === 1) { y += h + 26; col = 0; } else { col = 1; }
-      } catch {
+        if (col === 1){ y += h + 26; col = 0; } else { col = 1; }
+      }catch{
         ensureSpace(14);
         doc.setFontSize(10); doc.setTextColor(150);
-        doc.text(`(Não foi possível carregar a imagem ${i + 1})`, MARGIN_X, y);
+        doc.text(`(Não foi possível carregar a imagem ${i+1})`, MARGIN_X, y);
         y += 16; doc.setTextColor(THEME.ink);
       }
     }
     if (col === 1) y += 8;
+  } else {
+    paragraph("Nenhuma imagem anexada.");
   }
 
-  if ((r.tabelasExtras || []).length) {
-    title("10. Tabelas adicionais");
-    const colW = (PAGE_W - 2 * MARGIN_X - 20) / 2;
+  // Tabelas extras (opcional)
+  if ((r.tabelasExtras||[]).length){
+    title("Tabelas adicionais");
+    const colW = (PAGE_W - 2*MARGIN_X - 20) / 2;
     const lineH = 14;
-    (r.tabelasExtras || []).forEach((tbl, idxTbl) => {
+    (r.tabelasExtras||[]).forEach((tbl, idxTbl) => {
       ensureSpace(18);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
-      const titulo = tbl?.titulo ? `Tabela ${idxTbl + 1} — ${tbl.titulo}` : `Tabela ${idxTbl + 1}`;
+      doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
+      const titulo = tbl?.titulo ? `Tabela ${idxTbl+1} — ${tbl.titulo}` : `Tabela ${idxTbl+1}`;
       doc.text(titulo, MARGIN_X, y); y += 12;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+      doc.setFont("helvetica","normal"); doc.setFontSize(10);
 
       const linhas = tbl?.linhas || tbl || [];
-      if (!linhas.length) { paragraph("(sem dados)"); return; }
+      if (!linhas.length){ paragraph("(sem dados)"); return; }
 
       ensureSpace(lineH);
-      doc.setFont("helvetica", "bold");
+      doc.setFont("helvetica","bold");
       doc.text("Coluna 1", MARGIN_X, y);
       doc.text("Coluna 2", MARGIN_X + colW + 20, y);
-      doc.setFont("helvetica", "normal");
+      doc.setFont("helvetica","normal");
       y += 10;
 
       linhas.forEach((row) => {
@@ -798,8 +801,8 @@ async function gerarPDF(){
         const h = Math.max(c1Lines.length, c2Lines.length) * lineH;
 
         ensureSpace(h + 4);
-        c1Lines.forEach((ln, i) => doc.text(ln, MARGIN_X, y + i * lineH));
-        c2Lines.forEach((ln, i) => doc.text(ln, MARGIN_X + colW + 20, y + i * lineH));
+        c1Lines.forEach((ln, i) => doc.text(ln, MARGIN_X, y + i*lineH));
+        c2Lines.forEach((ln, i) => doc.text(ln, MARGIN_X + colW + 20, y + i*lineH));
         y += h + 4;
       });
 
@@ -808,26 +811,11 @@ async function gerarPDF(){
   }
 
   addFooter();
-  doc.save(`relatorio-${sanitizeFileName(r.numeroRelatorio) || "ensaio"}.pdf`);
-}
-
-
-/* =========================
-   PDF (layout HTML)
-   ========================= */
-function gerarPDFhtml(){
-  const relatorio=$("#formRelatorio");
-  html2pdf().set({
-    margin:0.5,
-    filename:`relatorio-${sanitizeFileName($("#formRelatorio").numeroRelatorio.value)||"ensaio"}.pdf`,
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2, useCORS:true},
-    jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
-  }).from(relatorio).save();
+  doc.save(`relatorio-${sanitizeFileName(r.numeroRelatorio)||"ensaio"}.pdf`);
 }
 
 /* =========================
-   Utilidades diversas
+   Miscelânea
    ========================= */
 function escapeHtml(s){
   return String(s||"").replace(/[&<>"']/g, m => (
@@ -836,225 +824,47 @@ function escapeHtml(s){
 }
 
 /* =========================
-   AUTH (localStorage)
+   UI polish helpers
    ========================= */
-function nowIso(){ return new Date().toISOString(); }
-async function sha256(txt){
-  const enc = new TextEncoder().encode(txt);
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+function injectUIStyles(){
+  const style = document.createElement("style");
+  style.textContent = `
+    .brand img { width: 68px; height: 68px; object-fit: contain; } /* logo maior */
+    .btn--primary, .btn.btn--primary {
+      background:${THEME.brand} !important; border-color:${THEME.brand} !important; color:#fff !important;
+    }
+    .btn--primary:hover { filter: brightness(0.96); }
+    /* botões de ação em vermelho Shiva */
+    #btnPDF, #btnAddResultado, #btnAddImagem, #btnAddAmostra {
+      border-color:${THEME.brand} !important; color:${THEME.brand} !important;
+    }
+    #btnPDF:hover, #btnAddResultado:hover, #btnAddImagem:hover, #btnAddAmostra:hover {
+      background:${THEME.brandWeak} !important;
+    }
+  `;
+  document.head.appendChild(style);
 }
-function loadUsers(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_USERS))||[] }catch{ return []; }
-}
-function saveUsers(list){
-  localStorage.setItem(STORAGE_USERS, JSON.stringify(list));
-}
-function getSession(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_SESSION))||null }catch{ return null; }
-}
-function setSession(sess){
-  if(sess) localStorage.setItem(STORAGE_SESSION, JSON.stringify(sess));
-  else localStorage.removeItem(STORAGE_SESSION);
-}
-
-/* cria admin padrão no 1º uso */
-async function ensureDefaultAdmin(){
-  const users = loadUsers();
-  if(!users.length){
-    const passhash = await sha256("admin123");
-    users.push({ id: uid(), nome: "Administrador", email: "admin@local", pass: passhash, role: "admin", updatedAt: nowIso() });
-    saveUsers(users);
+function alignAddResultadoBtn(){
+  const wrap = $(".tabela-wrap");
+  const btn = $("#btnAddResultado");
+  if (wrap && btn && wrap.nextElementSibling !== btn) { wrap.after(btn); }
+  if (btn){
+    btn.style.margin = ".6rem 0 1rem 0";
+    btn.style.display = "inline-flex";
+    btn.style.verticalAlign = "middle";
+    btn.style.alignItems = "center";
+    btn.style.gap = ".4rem";
   }
 }
-
-/* UI helpers */
-function lockUI(locked=true){
-  document.body.classList.toggle("locked", locked);
-  const auth = $("#authScreen");
-  if(auth) auth.style.display = locked ? "grid" : "none";
+function tableResponsiveLabels(){
+  const tbl = $("#tblResultados"); if (!tbl) return;
+  const headers = $$("thead th", tbl).map(th => th.textContent.trim());
+  const apply = () => $$("tbody tr", tbl).forEach(tr => $$("td", tr).forEach((td, i) => td.setAttribute("data-label", headers[i] || "")));
+  apply(); new MutationObserver(apply).observe(tbl.tBodies[0], { childList: true, subtree: true });
 }
-function renderWhoAmI(){
-  const s = getSession();
-  const who = $("#whoami");
-  if(who) who.textContent = s ? `${s.nome} (${s.role})` : "—";
-}
-
-/* controle de permissão */
-function hasRole(...roles){
-  const s = getSession();
-  return !!(s && roles.includes(s.role));
-}
-function applyRolePermissions(){
-  const canEdit = hasRole("admin","editor");
-
-  // campos do formulário
-  $$("#formRelatorio input, #formRelatorio textarea, #formRelatorio select, #formRelatorio button").forEach(el=>{
-    const id = el.id || "";
-    const always = ["btnPDF","btnPDFhtml","btnImprimir","btnExportar"];
-    if(always.includes(id)) return;
-    el.disabled = !canEdit;
-  });
-
-  // botões do topo fora do form
-  $("#btnNovo")?.toggleAttribute("disabled", !canEdit);
-  $("#btnSalvar")?.toggleAttribute("disabled", !canEdit);
-  $("#inputImportar")?.toggleAttribute("disabled", !canEdit);
-
-  // acesso ao módulo de usuários: só admin
-  $("#btnUsers")?.toggleAttribute("disabled", !hasRole("admin"));
-}
-
-/* ===== Login / Logout ===== */
-async function doLogin(email, password){
-  const users = loadUsers();
-  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  if(!user) throw new Error("Usuário não encontrado.");
-  const hash = await sha256(password);
-  if(user.pass !== hash) throw new Error("Senha incorreta.");
-  setSession({ id:user.id, nome:user.nome, email:user.email, role:user.role, ts:Date.now() });
-  renderWhoAmI();
-}
-function doLogout(){
-  setSession(null);
-  lockUI(true);
-  renderWhoAmI();
-  applyRolePermissions();
-  toast("Sessão encerrada");
-}
-
-/* ===== CRUD de usuários (admin) ===== */
-function usersRenderTable(){
-  const tbody = $("#tblUsers tbody");
-  if(!tbody) return;
-  const list = loadUsers().sort((a,b)=>a.nome.localeCompare(b.nome));
-  tbody.innerHTML = list.map(u=>`
-    <tr data-id="${u.id}">
-      <td>${escapeHtml(u.nome)}</td>
-      <td>${escapeHtml(u.email)}</td>
-      <td>${escapeHtml(u.role)}</td>
-      <td>${new Date(u.updatedAt).toLocaleString()}</td>
-    </tr>`).join("");
-}
-function usersFillForm(u){
-  $("#uNome").value = u?.nome || "";
-  $("#uEmail").value = u?.email || "";
-  $("#uSenha").value = "";
-  $("#uRole").value = u?.role || "editor";
-  $("#userForm").dataset.editingId = u?.id || "";
-}
-async function usersSaveOrUpdate(){
-  if(!hasRole("admin")){ toast("Apenas administradores podem gerenciar usuários.","error"); return; }
-  const nome = $("#uNome").value.trim();
-  const email = $("#uEmail").value.trim();
-  const senha = $("#uSenha").value;
-  const role = $("#uRole").value;
-
-  if(!nome || !email) { toast("Nome e e-mail são obrigatórios.","error"); return; }
-  const editingId = $("#userForm").dataset.editingId || null;
-  const list = loadUsers();
-
-  if(editingId){
-    const i = list.findIndex(u=>u.id===editingId);
-    if(i<0){ toast("Usuário não encontrado.","error"); return; }
-    if(list.some((u,ix)=>ix!==i && u.email.toLowerCase()===email.toLowerCase())){
-      toast("Já existe usuário com esse e-mail.","error"); return;
-    }
-    list[i].nome = nome;
-    list[i].email = email;
-    list[i].role = role;
-    if(senha){ list[i].pass = await sha256(senha); }
-    list[i].updatedAt = nowIso();
-  } else {
-    if(list.some(u=>u.email.toLowerCase()===email.toLowerCase())){
-      toast("Já existe usuário com esse e-mail.","error"); return;
-    }
-    list.push({
-      id: uid(),
-      nome, email, role,
-      pass: senha ? await sha256(senha) : await sha256(Math.random().toString(36).slice(2,10)),
-      updatedAt: nowIso()
-    });
-  }
-  saveUsers(list);
-  usersRenderTable();
-  usersFillForm(null);
-  toast("Usuário salvo/atualizado","success");
-}
-function usersDelete(){
-  if(!hasRole("admin")){ toast("Apenas administradores podem excluir usuários.","error"); return; }
-  const editingId = $("#userForm").dataset.editingId || null;
-  if(!editingId){ toast("Selecione um usuário na tabela.","error"); return; }
-  const list = loadUsers();
-  const user = list.find(u=>u.id===editingId);
-  if(!user) return;
-  if(!confirm(`Excluir o usuário:\n\n${user.nome} <${user.email}> ?`)) return;
-  if(user.role==="admin" && list.filter(u=>u.role==="admin").length===1){
-    toast("Não é possível excluir o único admin.","error"); return;
-  }
-  saveUsers(list.filter(u=>u.id!==editingId));
-  usersRenderTable();
-  usersFillForm(null);
-  toast("Usuário excluído");
-}
-/* Export/Import usuários */
-function exportUsersJSON(){
-  const data = loadUsers();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=`usuarios-relatorios.json`;
-  a.click(); URL.revokeObjectURL(a.href);
-  toast("Usuários exportados","success");
-}
-function importUsersJSON(ev){
-  const f=ev.target.files?.[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=()=>{ try{
-    const data=JSON.parse(reader.result);
-    if(!Array.isArray(data)) throw new Error("Formato inválido");
-    const ok = data.every(u=>u.id && u.email && u.pass && u.role);
-    if(!ok) throw new Error("Campos obrigatórios ausentes.");
-    saveUsers(data);
-    toast("Usuários importados","success");
-  }catch(e){ toast("Arquivo inválido: "+e.message,"error"); }
-  ev.target.value=""; };
-  reader.readAsText(f);
-}
-/* Bind Auth / Users */
-function bindAuthEvents(){
-  $("#loginForm")?.addEventListener("submit", async (e)=>{
-    e.preventDefault();
-    const email = $("#loginEmail").value.trim();
-    const password = $("#loginPassword").value;
-    try{
-      await doLogin(email, password);
-      $("#loginPassword").value = "";
-      lockUI(false);
-      renderWhoAmI();
-      applyRolePermissions();
-      toast("Bem-vindo(a)!", "success");
-    }catch(err){
-      toast(err.message || "Falha no login.","error");
-    }
-  });
-  $("#btnLogout")?.addEventListener("click", doLogout);
-  $("#btnUsers")?.addEventListener("click", ()=>{
-    if(!hasRole("admin")){ toast("Apenas administradores.","error"); return; }
-    usersRenderTable();
-    usersFillForm(null);
-    $("#dlgUsers")?.showModal();
-  });
-  $("#btnUserSave")?.addEventListener("click", usersSaveOrUpdate);
-  $("#btnUserNew")?.addEventListener("click", ()=> usersFillForm(null));
-  $("#btnUserDelete")?.addEventListener("click", usersDelete);
-  $("#tblUsers")?.addEventListener("click", (e)=>{
-    const tr = e.target.closest("tr[data-id]");
-    if(!tr) return;
-    const id = tr.dataset.id;
-    const u = loadUsers().find(x=>x.id===id);
-    if(u) usersFillForm(u);
-  });
-  $("#btnExportUsers")?.addEventListener("click", exportUsersJSON);
-  $("#inputImportUsers")?.addEventListener("change", importUsersJSON);
+function topbarShadow(){
+  const topbar = $(".topbar");
+  const onScroll = () => topbar?.classList.toggle("is-scrolled", window.scrollY > 4);
+  onScroll();
+  addEventListener("scroll", onScroll, { passive: true });
 }
