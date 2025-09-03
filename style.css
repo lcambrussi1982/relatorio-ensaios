@@ -1,33 +1,29 @@
-/* -------------------------------------------------------
-   Shiva Conexões — UI Centralizada (60–30–10)
-   Container central, grid simétrico e sidebar fixa
---------------------------------------------------------*/
-
-/* Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@600;700&display=swap');
 
-/* =========================
-   Tokens / Design System
-   ========================= */
 :root {
-  /* Azul predominante (60%) */
+  --navy-950: #0a2740;
   --navy-900: #0E3554;
   --navy-800: #15476f;
   --navy-700: #1c5b8e;
+  --navy-600: #2b74b6;
   --navy-100: #e7eff7;
 
-  /* Vermelho (10%) */
-  --red-600: #E1262D;
   --red-700: #cb0f16;
+  --red-650: #d4151c;
+  --red-600: #E1262D;
+  --red-500: #ef3b41;
+  --red-300: #ffd1d2;
 
-  /* Neutros (30%) */
   --bg: #F6F8FB;
   --surface: #FFFFFF;
   --ink: #0F1E3D;
   --muted: #5C6B84;
   --border: #E2E8F0;
 
-  /* Raio / sombra / foco */
+  --g-navy: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-800) 55%, var(--navy-700) 100%);
+  --g-navy-soft: linear-gradient(180deg, #f9fbff 0%, #f6f9ff 100%);
+  --g-red: linear-gradient(180deg, #ff5a60 0%, var(--red-600) 45%, var(--red-700) 100%);
+
   --radius-xl: 18px;
   --radius-lg: 14px;
   --radius-md: 12px;
@@ -35,7 +31,6 @@
   --shadow-2: 0 10px 30px rgba(14, 53, 84, .12);
   --ring: 0 0 0 3px rgba(28, 91, 142, .28);
 
-  /* Tipografia */
   --ff-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
   --ff-title: "Poppins", var(--ff-ui);
   --fs-sm: .9rem;
@@ -43,18 +38,11 @@
   --fs-lg: 1.125rem;
   --fs-xl: 1.35rem;
 
-  /* Layout */
   --container: 1360px;
-  /* largura do app (centralizado) */
   --aside: 360px;
-  /* largura da sidebar */
   --gap: 24px;
-  /* espaçamento base entre colunas/cards */
 }
 
-/* =========================
-   Base
-   ========================= */
 *,
 *::before,
 *::after {
@@ -115,34 +103,27 @@ a:hover {
   white-space: normal
 }
 
-/* =========================
-   Container CENTRALIZADO
-   ========================= */
 .container {
   max-width: var(--container);
   margin-inline: auto;
-  /* CENTRALIZA horizontalmente */
-  padding-inline: 32px;
-  /* respiro lateral */
+  padding-inline: 32px
 }
 
-/* =========================
-   Topbar (stick) — 100% largura
-   ========================= */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: linear-gradient(180deg, var(--navy-900), var(--navy-800));
+  background: var(--g-navy);
   color: #fff;
   box-shadow: var(--shadow-2);
+  backdrop-filter: saturate(1.15) blur(4px);
 }
 
 .topbar__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-block: 12px;
+  padding-block: 12px
 }
 
 .brand {
@@ -152,8 +133,8 @@ a:hover {
 }
 
 .brand img {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .28))
 }
@@ -174,7 +155,6 @@ a:hover {
   opacity: .92
 }
 
-/* Botões */
 .actions {
   display: flex;
   align-items: center;
@@ -210,22 +190,23 @@ a:hover {
 }
 
 .btn--primary {
-  background: var(--red-600);
-  color: #fff
+  background: var(--g-red);
+  color: #fff;
+  border: 0
 }
 
 .btn--primary:hover {
-  background: var(--red-700)
+  filter: brightness(.98)
 }
 
 .btn--secondary {
-  background: #ffffff14;
+  background: #ffffff18;
   color: #fff;
   border-color: #ffffff30
 }
 
 .btn--secondary:hover {
-  background: #ffffff22
+  background: #ffffff28
 }
 
 .btn--ghost {
@@ -238,9 +219,6 @@ a:hover {
   background: #ffffff14
 }
 
-/* =========================
-   LAYOUT central dentro do container
-   ========================= */
 .layout {
   padding-block: 28px
 }
@@ -248,22 +226,17 @@ a:hover {
 .layout>.container {
   display: grid;
   grid-template-columns: var(--aside) 1fr;
-  /* sidebar + conteúdo */
   gap: var(--gap);
   align-items: start;
   min-height: calc(100svh - 90px);
-  /* usa a altura da tela descontando topbar */
 }
 
-@media (max-width: 1100px) {
+@media (max-width:1100px) {
   .layout>.container {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr
   }
 }
 
-/* =========================
-   Sidebar (Relatórios) — canto sup. esq.
-   ========================= */
 .lista-relatorios {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -272,9 +245,7 @@ a:hover {
   padding: 18px;
   height: fit-content;
   position: sticky;
-  /* fixa ao rolar */
   top: 96px;
-  /* abaixo da topbar */
 }
 
 .aside-head {
@@ -299,7 +270,7 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
-  background: #fff;
+  background: #fff
 }
 
 #listaRelatorios {
@@ -333,9 +304,6 @@ a:hover {
   box-shadow: 0 0 0 3px #1c5b8e33
 }
 
-/* =========================
-   Conteúdo (cards simétricos)
-   ========================= */
 .conteudo {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -344,7 +312,6 @@ a:hover {
   padding: 28px;
 }
 
-/* Fieldsets como cartões */
 fieldset {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -352,18 +319,16 @@ fieldset {
   padding: 20px 18px;
   margin: 0 0 var(--gap);
   box-shadow: var(--shadow-1);
+  background-image: var(--g-navy-soft);
 }
 
 legend {
   font: 700 var(--fs-lg)/1.1 var(--ff-title);
   color: var(--navy-900);
   padding: 0 6px;
-  letter-spacing: .2px;
+  letter-spacing: .2px
 }
 
-/* =========================
-   Grid do formulário (SIMÉTRICO)
-   ========================= */
 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -377,32 +342,31 @@ legend {
   align-self: center;
   color: var(--muted);
   font-weight: 600;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-sm)
 }
 
 .grid>input:not([type="checkbox"]),
 .grid>select,
 .grid>textarea {
-  grid-column: span 8;
+  grid-column: span 8
 }
 
 .grid .full {
-  grid-column: 1 / -1;
+  grid-column: 1/-1
 }
 
-@media (max-width: 1024px) {
+@media (max-width:1024px) {
   .grid>label {
-    grid-column: span 12;
+    grid-column: span 12
   }
 
   .grid>input:not([type="checkbox"]),
   .grid>select,
   .grid>textarea {
-    grid-column: span 12;
+    grid-column: span 12
   }
 }
 
-/* Campos */
 input[type="text"],
 input[type="date"],
 input[type="number"],
@@ -446,7 +410,6 @@ select {
   background-repeat: no-repeat;
 }
 
-/* Dicas e ações internas */
 .hint {
   grid-column: span 12;
   font-size: .9rem;
@@ -463,9 +426,6 @@ select {
   flex-wrap: wrap
 }
 
-/* =========================
-   Tabela de Resultados
-   ========================= */
 .tabela-wrap {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -484,13 +444,13 @@ select {
 .tabela thead th {
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, var(--navy-900), var(--navy-800));
+  background: var(--g-navy);
   color: #fff;
   text-align: left;
   font-size: .9rem;
   font-weight: 700;
   padding: 12px 14px;
-  letter-spacing: .2px
+  letter-spacing: .2px;
 }
 
 .tabela tbody td {
@@ -513,9 +473,6 @@ select {
   white-space: nowrap
 }
 
-/* =========================
-   Botões fora da topbar (em superfícies claras)
-   ========================= */
 .conteudo .btn {
   background: #fff;
   border: 1px solid var(--border);
@@ -523,27 +480,24 @@ select {
 }
 
 .conteudo .btn--primary {
-  background: var(--red-600);
+  background: var(--g-red);
   color: #fff;
   border-color: transparent
 }
 
 .conteudo .btn--primary:hover {
-  background: var(--red-700)
+  filter: brightness(.98)
 }
 
 .conteudo .btn--secondary:hover {
   background: #f2f6fb
 }
 
-/* =========================
-   Rodapé
-   ========================= */
 .rodape {
   margin-top: 28px;
   padding: 16px 0 22px;
   color: #fff;
-  background: linear-gradient(0deg, var(--navy-900), var(--navy-800));
+  background: var(--g-navy);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
 }
 
@@ -553,9 +507,6 @@ select {
   opacity: .92
 }
 
-/* =========================
-   Acessibilidade / Utilidades
-   ========================= */
 :focus-visible {
   outline: none;
   box-shadow: var(--ring);
@@ -568,25 +519,19 @@ select {
   opacity: .65
 }
 
-/* =========================
-   Responsividade fina
-   ========================= */
-@media (max-width: 1360px) {
+@media (max-width:1360px) {
   .container {
     padding-inline: 24px
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width:1100px) {
   .lista-relatorios {
     position: static;
     top: auto
   }
 }
 
-/* =========================
-   Impressão
-   ========================= */
 @media print {
   body {
     background: #fff
