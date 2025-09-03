@@ -133,8 +133,8 @@ a:hover {
 }
 
 .brand img {
-  width: 52px;
-  height: 52px;
+  width: 75px;
+  height: 75px;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .28))
 }
