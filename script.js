@@ -23,6 +23,7 @@ const STORAGE_KEY = "relatorios-ensaio-v5";
 /* =========================
    Helpers DOM / Utils
    ========================= */
+   const FORNECEDOR_FIXO = "MARINI INDUSTRIA E COMERCIO DE PLÁSTICO";
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.random()).toString(36));
@@ -169,7 +170,7 @@ function novoRelatorio() {
     id: uid(),
     numeroRelatorio: "",
     ordemProducao: "",
-    fornecedorFabricante: "",
+     fornecedorFabricante: FORNECEDOR_FIXO,
     interessado: "",
     revisao: "",
     dataEmissao: "",
