@@ -651,33 +651,51 @@ async function getLogoDataURL() {
 // =========================
 // PDF (texto) — jsPDF com molduras e "inputs" como na página
 // =========================
+// =========================
+// PDF (texto) — jsPDF c/ molduras, data BR e assinaturas no rodapé
+// =========================
 async function gerarPDF(opts = {}) {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     toast("jsPDF não está carregado. Confira a tag no <head>.", "error");
     return;
   }
+
   const { jsPDF } = window.jspdf;
   const r = coletarForm();
   const doc = new jsPDF({ unit: "pt", format: "a4" });
 
-  // ---- medidas base
+  // ---- helpers locais --------------------------------------------
+  const formatDateBR = (input) => {
+    if (!input) return "";
+    const s = String(input).trim();
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); // ISO yyyy-MM-dd(THH...)
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s; // já está BR
+    const d = new Date(s);
+    if (!isNaN(d)) {
+      const dd = String(d.getDate()).padStart(2,"0");
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    return s;
+  };
+
   const PAGE_W = doc.internal.pageSize.getWidth();
   const PAGE_H = doc.internal.pageSize.getHeight();
   const MARGIN_X = 40, MARGIN_TOP = 50, MARGIN_BOTTOM = 40;
   let y = MARGIN_TOP;
 
-  // ---- logo
   const LOGO_DURL = await getLogoDataURL();
-  const LOGO_FMT = LOGO_DURL ? getImageFormatFromDataURL(LOGO_DURL) : null;
+  const LOGO_FMT  = LOGO_DURL ? getImageFormatFromDataURL(LOGO_DURL) : null;
   let logoDims = { w: 110, h: 32 };
   if (LOGO_DURL) {
-    const img = new Image(); img.src = LOGO_DURL;
-    await new Promise(res => (img.complete ? res() : (img.onload = res)));
-    const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
+    const imgTmp = new Image(); imgTmp.src = LOGO_DURL;
+    await new Promise(res => (imgTmp.complete ? res() : (imgTmp.onload = res)));
+    const ratio = imgTmp.naturalHeight / Math.max(1, imgTmp.naturalWidth);
     logoDims.h = Math.round(logoDims.w * ratio);
   }
 
-  // ---- header & footer
   const addHeader = () => {
     let headerBottomY;
     if (LOGO_DURL) {
@@ -697,6 +715,7 @@ async function gerarPDF(opts = {}) {
     y = headerBottomY + 24;
     doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(THEME.ink);
   };
+
   const addFooter = () => {
     const pageNum = doc.internal.getNumberOfPages();
     doc.setFontSize(9); doc.setTextColor(120);
@@ -709,26 +728,24 @@ async function gerarPDF(opts = {}) {
       );
     }
   };
+
   addHeader();
 
-  // ---- helpers de layout
+  // ---- helpers de layout -----------------------------------------
   const COR_BORDA = 170;
   const FIELD_PAD_X = 8, FIELD_PAD_Y = 8;
   const LINE_H = 14;
-
   let currentSection = null; // { legend, topY, continued }
   let sectionIndex = 0;
 
   const ensureSpace = (h = 18) => {
     const before = doc.internal.getNumberOfPages();
     if (y + h <= PAGE_H - MARGIN_BOTTOM) return false;
-    // fecha moldura da página atual
     if (currentSection) drawBoxAndLegend(currentSection, PAGE_H - MARGIN_BOTTOM, true);
     addFooter();
     doc.addPage();
     y = MARGIN_TOP;
     addHeader();
-    // reabre moldura com "(continuação)"
     if (currentSection) {
       currentSection.topY = y;
       currentSection.continued = true;
@@ -742,7 +759,6 @@ async function gerarPDF(opts = {}) {
     const x = MARGIN_X - 10;
     const w = PAGE_W - 2 * MARGIN_X + 20;
     const h = Math.max(18, bottomY - sec.topY) + 10;
-
     doc.setDrawColor(COR_BORDA);
     doc.roundedRect(x, sec.topY - 10, w, h + 10, 6, 6);
 
@@ -772,14 +788,11 @@ async function gerarPDF(opts = {}) {
     y += 8;
   };
 
-  // --- desenha um "input"
   const drawField = (label, value, x, w) => {
     value = (value || "-").toString();
-    // label
     doc.setFontSize(10); doc.setTextColor(THEME.muted);
     doc.text(label, x, y);
-    y += 10; // espaço abaixo do label
-    // caixa + texto
+    y += 10;
     const maxW = w - FIELD_PAD_X * 2;
     doc.setFontSize(11); doc.setTextColor(THEME.ink);
     const lines = doc.splitTextToSize(value, maxW);
@@ -792,13 +805,11 @@ async function gerarPDF(opts = {}) {
     y += boxH + 6;
   };
 
-  // --- desenha "textarea" grande
   const drawTextArea = (label, text, minHeight, x, w) => {
     text = (text || "").toString().trim() || " ";
     doc.setFontSize(10); doc.setTextColor(THEME.muted);
     doc.text(label, x, y);
     y += 10;
-
     const maxW = w - FIELD_PAD_X * 2;
     doc.setFontSize(11); doc.setTextColor(THEME.ink);
     const lines = doc.splitTextToSize(text, maxW);
@@ -811,7 +822,6 @@ async function gerarPDF(opts = {}) {
     y += boxH + 6;
   };
 
-  // --- grid de 2 colunas
   const twoColFields = (pairs) => {
     const fullW = PAGE_W - 2 * MARGIN_X;
     const gutter = 16;
@@ -820,69 +830,51 @@ async function gerarPDF(opts = {}) {
     while (i < pairs.length) {
       const [l1, v1] = pairs[i] || ["", ""];
       const [l2, v2] = pairs[i + 1] || ["", ""];
-
-      // medimos alturas previstas
-      const hEstimate = 60; // média p/ caber bem; ensureSpace ajusta se precisar
-      ensureSpace(hEstimate);
-
-      // salva Y para nivelar as duas colunas
+      ensureSpace(60);
       const yStart = y;
       const x1 = MARGIN_X, x2 = MARGIN_X + colW + gutter;
 
-      // coluna 1
       let yTemp = y;
       y = yTemp; drawField(l1, v1, x1, colW);
       const yAfter1 = y;
 
-      // coluna 2
       y = yTemp; drawField(l2, v2, x2, colW);
       const yAfter2 = y;
 
-      // nivelar
       y = Math.max(yAfter1, yAfter2);
-
       i += 2;
     }
   };
 
-  // --- tabela de Resultados (com cabeçalho e caixinhas)
   const drawResultadosTable = (rows) => {
     const fullW = PAGE_W - 2 * MARGIN_X;
     const cols = [
-      { key: "ensaio", title: "Ensaio", w: fullW * 0.24 },
-      { key: "resultado", title: "Resultado obtido", w: fullW * 0.36 },
-      { key: "requisito", title: "Requisito normativo", w: fullW * 0.24 },
-      { key: "conformidade", title: "Conformidade", w: fullW * 0.16 },
+      { key: "ensaio",        title: "Ensaio",             w: fullW * 0.24 },
+      { key: "resultado",     title: "Resultado obtido",   w: fullW * 0.36 },
+      { key: "requisito",     title: "Requisito normativo",w: fullW * 0.24 },
+      { key: "conformidade",  title: "Conformidade",       w: fullW * 0.16 },
     ];
-    const gutter = 0;
-    const colX = [];
-    let x = MARGIN_X;
-    cols.forEach(c => { colX.push(x); x += c.w + gutter; });
+    const colX = []; let x = MARGIN_X;
+    cols.forEach(c => { colX.push(x); x += c.w; });
 
     const printHeader = () => {
       ensureSpace(18);
       doc.setFont("helvetica", "bold"); doc.setTextColor(THEME.ink);
       cols.forEach((c, i) => doc.text(c.title, colX[i], y));
-      y += 10;
-      doc.setFont("helvetica", "normal");
+      y += 10; doc.setFont("helvetica", "normal");
     };
 
     printHeader();
-
     rows.forEach(row => {
-      // medir alturas
-      const heights = cols.map((c, i) => {
+      const heights = cols.map((c) => {
         const val = (row[c.key] || "-").toString();
         const lines = doc.splitTextToSize(val, c.w - FIELD_PAD_X * 2);
         return Math.max(24, FIELD_PAD_Y * 2 + lines.length * LINE_H);
       });
       let rowH = Math.max(...heights);
-
-      // quebra + reimprime header se precisar
       const changed = ensureSpace(rowH + 6);
       if (changed) printHeader();
 
-      // desenhar células em "caixa"
       cols.forEach((c, i) => {
         doc.setDrawColor(COR_BORDA);
         doc.roundedRect(colX[i], y - 9, c.w, rowH, 5, 5);
@@ -895,6 +887,58 @@ async function gerarPDF(opts = {}) {
     });
   };
 
+  // --- assinaturas (rodapé da última página)
+  const pickVal = (selectors) => {
+    for (const sel of selectors) {
+      const el = sel.startsWith("#") || sel.startsWith("[")
+        ? document.querySelector(sel)
+        : document.getElementById(sel);
+      const v = el?.value?.trim();
+      if (v) return v;
+    }
+    return "";
+  };
+
+  const drawSignBlock = (x, w, title, name) => {
+    const lineGap = 36;  // título -> linha
+    const nameGap = 16;  // linha -> nome
+    doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(THEME.ink);
+    doc.text(title, x, y);
+    const lineY = y + lineGap;
+    doc.setDrawColor(120);
+    doc.line(x, lineY, x + w, lineY);
+    if (name) {
+      doc.setFontSize(11); doc.setTextColor(80);
+      doc.text(String(name), x, lineY + nameGap);
+    }
+  };
+
+  const drawAssinaturasFinal = () => {
+    const areaH = 100;
+    const fullW = PAGE_W - 2 * MARGIN_X;
+    const gutter = 28;
+    const colW = (fullW - gutter) / 2;
+
+    if (y > PAGE_H - MARGIN_BOTTOM - areaH) {
+      addFooter();
+      doc.addPage();
+      y = MARGIN_TOP;
+      addHeader();
+    }
+
+    y = Math.max(y, PAGE_H - MARGIN_BOTTOM - areaH);
+
+    // tenta diferentes ids/names comuns para evitar dependência
+    const nomeTestes = pickVal(["#respTestes", "[name='respTestes']", "responsavelTestes", "responsavelPelosTestes"]) || "";
+    const nomeVerif  = pickVal(["#respVerificacao", "[name='respVerificacao']", "responsavelVerificacao", "responsavelPelaVerificacao"]) || "";
+
+    drawSignBlock(MARGIN_X,               colW, "Responsável pelos testes:",     nomeTestes);
+    drawSignBlock(MARGIN_X + colW + gutter, colW, "Responsável pela verificação:", nomeVerif);
+
+    y += areaH;
+  };
+  // ---- fim helpers -----------------------------------------------
+
   // -----------------------------
   // 1) Identificação do Relatório
   // -----------------------------
@@ -905,7 +949,7 @@ async function gerarPDF(opts = {}) {
     ["Fornecedor/Fabricante", r.fornecedorFabricante],
     ["Interessado", r.interessado],
     ["Revisão", r.revisao],
-    ["Data de emissão", r.dataEmissao],
+    ["Data de emissão", formatDateBR(r.dataEmissao)], // <<< dd/MM/yyyy
     ["Responsável Técnico", r.responsavelTecnico],
     ["Laboratório", r.laboratorio],
     ["Normas de referência", r.normasReferencia || "-"]
@@ -938,12 +982,12 @@ async function gerarPDF(opts = {}) {
   endSection();
 
   // -----------------------------
-  // 3) Métodos e Materiais Empregados (mostra como no formulário)
+  // 3) Métodos e Materiais Empregados
   // -----------------------------
-  const ensaioTxt = $("#ensaioRealizado option:checked")?.textContent?.trim() || "";
-  const amostrasTxt = $("#amostrasSelect option:checked")?.textContent?.trim() || "";
-  const metodoTxt = $("#metodo option:checked")?.textContent?.trim() || "";
-  const resultadoMM = $("#resultado option:checked")?.textContent?.trim() || "";
+  const ensaioTxt    = document.querySelector("#ensaioRealizado option:checked")?.textContent?.trim() || "";
+  const amostrasTxt  = document.querySelector("#amostrasSelect option:checked")?.textContent?.trim() || "";
+  const metodoTxt    = document.querySelector("#metodo option:checked")?.textContent?.trim() || "";
+  const resultadoMM  = document.querySelector("#resultado option:checked")?.textContent?.trim() || "";
   beginSection("Métodos e Materiais Empregados");
   twoColFields([
     ["Ensaio realizado", ensaioTxt],
@@ -954,11 +998,10 @@ async function gerarPDF(opts = {}) {
   endSection();
 
   // -----------------------------
-  // 4) Resultados dos Ensaios (tabela + imagens + anexos) — na mesma moldura
+  // 4) Resultados dos Ensaios
   // -----------------------------
   beginSection("Resultados dos Ensaios");
 
-  // 4.1 tabela
   const rows = r.resultados || [];
   if (!rows.length) {
     drawTextArea("Resultados", "Sem resultados informados.", 40, MARGIN_X, PAGE_W - 2 * MARGIN_X);
@@ -966,7 +1009,7 @@ async function gerarPDF(opts = {}) {
     drawResultadosTable(rows);
   }
 
-  // 4.2 Imagens (subtítulo)
+  // 4.2 Imagens
   ensureSpace(24);
   doc.setFont("helvetica", "bold"); doc.setTextColor(THEME.ink);
   doc.text("Imagens", MARGIN_X, y); y += 12; doc.setFont("helvetica", "normal");
@@ -1020,8 +1063,7 @@ async function gerarPDF(opts = {}) {
         : "-"
     ]
   ]);
-
-  endSection(); // fim do fieldset Resultados
+  endSection();
 
   // -----------------------------
   // 5) Discussão dos Resultados
@@ -1041,6 +1083,11 @@ async function gerarPDF(opts = {}) {
   drawTextArea("Observações", r.conclusao?.observacoes || "", 90, MARGIN_X, PAGE_W - 2 * MARGIN_X);
   endSection();
 
+  // -----------------------------
+  // 7) Assinaturas no rodapé da última página
+  // -----------------------------
+  drawAssinaturasFinal();
+
   addFooter();
 
   const filename = `relatorio-${sanitizeFileName(r.numeroRelatorio) || "ensaio"}.pdf`;
@@ -1050,10 +1097,35 @@ async function gerarPDF(opts = {}) {
 }
 
 
+/* =========================
+   Datas — formato dd/MM/yyyy
+   ========================= */
+function formatDateBR(input) {
+  if (!input) return "";
+  const s = String(input).trim();
+  // ISO: yyyy-MM-dd (ou yyyy-MM-ddTHH:mm..)
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  // Já em dd/MM/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  // Fallback parseável
+  const d = new Date(s);
+  if (!isNaN(d)) {
+    const dd = String(d.getDate()).padStart(2,"0");
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  return s;
+}
+
 
 /* =========================
    Miscelânea
    ========================= */
+
+
+   
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, m => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]
