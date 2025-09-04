@@ -615,25 +615,41 @@ function gerarNumeroRelatorio() {
 /* =========================
    PDF (texto) — jsPDF
    ========================= */
-function loadImageAsDataURL(url) {
+function loadImageAsDataURL(url, preferPNG = false) {
   return new Promise((resolve, reject) => {
     if (!url) return reject(new Error("URL vazia"));
-    if (/^data:image\//i.test(url)) return resolve(url);
+    if (/^data:image\//i.test(url)) return resolve(url); // já é DataURL (mantém formato)
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/jpeg", 0.92));
+
+        if (preferPNG) {
+          // mantém alpha (sem fundo preto)
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          return resolve(canvas.toDataURL("image/png"));
+        } else {
+          // fotos: forçar fundo branco p/ evitar preto no JPEG
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          return resolve(canvas.toDataURL("image/jpeg", 0.92));
+        }
       } catch (err) { reject(err); }
     };
     img.onerror = reject;
     img.src = url;
   });
 }
+
+
+
 function getImageFormatFromDataURL(dataUrl) {
   if (typeof dataUrl !== "string") return "JPEG";
   if (dataUrl.startsWith("data:image/png")) return "PNG";
@@ -642,8 +658,14 @@ function getImageFormatFromDataURL(dataUrl) {
 async function getLogoDataURL() {
   const logoEl = document.querySelector('.brand img');
   const src = logoEl?.src || 'Shiva.png'; // fallback
-  try { return await loadImageAsDataURL(src); } catch { return null; }
+  try { 
+    // <<< preserva transparência da logo
+    return await loadImageAsDataURL(src, /* preferPNG */ true); 
+  } catch { 
+    return null; 
+  }
 }
+
 
 // =========================
 // PDF (texto) — jsPDF com "fieldsets" em molduras
@@ -1138,7 +1160,8 @@ function escapeHtml(s) {
 function injectUIStyles() {
   const style = document.createElement("style");
   style.textContent = `
-    .brand img { width: 68px; height: 68px; object-fit: contain; } /* logo maior */
+    .brand img { width: var(--logo-size, 84px); height: var(--logo-size, 100px); object-fit: contain; }
+
     .btn--primary, .btn.btn--primary {
       background:${THEME.brand} !important; border-color:${THEME.brand} !important; color:#fff !important;
     }
