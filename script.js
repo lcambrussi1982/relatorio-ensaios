@@ -1041,44 +1041,66 @@ async function gerarPDF(opts = {}) {
     drawResultadosTable(rows);
   }
 
-  // 4.2 Imagens
-  ensureSpace(24);
-  doc.setFont("helvetica", "bold"); doc.setTextColor(THEME.ink);
-  doc.text("Imagens", MARGIN_X, y); y += 12; doc.setFont("helvetica", "normal");
+// 4.2 Imagens
+ensureSpace(24);
+doc.setFont("helvetica", "bold"); doc.setTextColor(THEME.ink);
+doc.text("Imagens", MARGIN_X, y); y += 12; doc.setFont("helvetica", "normal");
 
-  if ((r.imagens || []).length) {
-    const thumbW = 220, thumbMaxH = 160, gap = 14;
-    let col = 0;
-    for (let i = 0; i < r.imagens.length; i++) {
-      const it = r.imagens[i];
-      const url = (typeof it === "string") ? it : it.src;
-      const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i + 1}`;
-      try {
-        const dataUrl = await loadImageAsDataURL(url);
-        const img = new Image(); img.src = dataUrl;
-        await new Promise(res => { if (img.complete) res(); else img.onload = res; });
-        const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
-        const h = Math.min(thumbW * ratio, thumbMaxH);
-        const w = thumbW;
-        ensureSpace(h + 22);
-        const x = MARGIN_X + col * (w + gap);
-        doc.addImage(dataUrl, getImageFormatFromDataURL(dataUrl), x, y, w, h);
-        doc.setFontSize(9); doc.setTextColor(100);
-        doc.text(legenda, x, y + h + 10);
-        doc.setFontSize(11); doc.setTextColor(THEME.ink);
-        if (col === 1) { y += h + 26; col = 0; } else { col = 1; }
-      } catch {
-        ensureSpace(16);
-        doc.setFontSize(10); doc.setTextColor(150);
-        doc.text(`(Não foi possível carregar a imagem ${i + 1})`, MARGIN_X, y);
-        doc.setFontSize(11); doc.setTextColor(THEME.ink);
-        y += 14;
+if ((r.imagens || []).length) {
+  const fullW = PAGE_W - 2 * MARGIN_X;
+  const gap = 14;
+  const thumbW = (fullW - gap) / 2;       // 2 colunas
+  const thumbMaxH = 160;
+
+  let col = 0;        // 0 = esquerda, 1 = direita
+  let rowMaxH = 0;    // maior altura da linha atual
+
+  for (let i = 0; i < r.imagens.length; i++) {
+    const it = r.imagens[i];
+    const url = (typeof it === "string") ? it : it.src;
+    const legenda = (typeof it === "object" ? it.legenda : "") || `Figura ${i + 1}`;
+
+    try {
+      const dataUrl = await loadImageAsDataURL(url);
+      const img = new Image(); img.src = dataUrl;
+      await new Promise(res => img.complete ? res() : img.onload = res);
+
+      const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
+      const h = Math.min(thumbW * ratio, thumbMaxH);
+
+      // Garante espaço para a linha (pela maior imagem)
+      if (col === 0) ensureSpace(h + 26);
+      else ensureSpace(Math.max(rowMaxH, h) + 26);
+
+      const x = MARGIN_X + col * (thumbW + gap);
+      doc.addImage(dataUrl, getImageFormatFromDataURL(dataUrl), x, y, thumbW, h);
+      doc.setFontSize(9); doc.setTextColor(100);
+      doc.text(legenda, x, y + h + 10);
+      doc.setFontSize(11); doc.setTextColor(THEME.ink);
+
+      rowMaxH = Math.max(rowMaxH, h);
+
+      if (col === 1) {            // fechou a linha
+        y += rowMaxH + 26;
+        col = 0;
+        rowMaxH = 0;
+      } else {
+        col = 1;
       }
+    } catch {
+      ensureSpace(16);
+      doc.setFontSize(10); doc.setTextColor(150);
+      doc.text(`(Não foi possível carregar a imagem ${i + 1})`, MARGIN_X, y);
+      doc.setFontSize(11); doc.setTextColor(THEME.ink);
+      y += 14;
     }
-    if (col === 1) y += 8;
-  } else {
-    drawTextArea(" ", "Nenhuma imagem anexada.", 40, MARGIN_X, PAGE_W - 2 * MARGIN_X);
   }
+
+  // Se terminou com uma imagem “solta”, empurra a altura dessa última linha
+  if (col === 1) y += rowMaxH + 26;
+} else {
+  drawTextArea(" ", "Nenhuma imagem anexada.", 40, MARGIN_X, PAGE_W - 2 * MARGIN_X);
+}
 
   // 4.3 Anexos (categorias + arquivos)
   ensureSpace(24);
