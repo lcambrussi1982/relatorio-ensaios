@@ -298,6 +298,63 @@ a:hover {
   gap: 8px
 }
 
+/* ===== Hamburguer + menu responsivo ===== */
+.hamburger {
+  display: none;
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  border: 1px solid #ffffff30;
+  background: #ffffff14;
+  align-items: center; justify-content: center;
+}
+.hamburger:hover { background: #ffffff20; }
+.hamburger:focus-visible { outline: none; box-shadow: var(--ring); }
+.hamburger__bar {
+  display: block; width: 22px; height: 2px;
+  background: #fff; border-radius: 2px;
+  position: relative;
+}
+.hamburger__bar + .hamburger__bar { margin-top: 5px; }
+
+/* Desktop: ações inline */
+.topnav { display: block; }
+
+/* Painel do menu (mobile) */
+@media (max-width: 900px) {
+  /* mostra o hambúrguer, esconde layout inline */
+  .hamburger { display: inline-flex; }
+  /* o nav vira um "dropdown" ancorado à direita */
+  .topnav[hidden] { display: none !important; }
+  .topnav {
+    position: absolute;
+    right: 16px; top: 100%;
+    width: min(92vw, 360px);
+    margin-top: 10px;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    padding: 12px;
+    z-index: 60;
+  }
+  /* botões “em bloco” no menu */
+  .topnav .actions {
+    display: grid;
+    gap: 8px;
+  }
+  .topnav .actions .btn { width: 100%; justify-content: center; }
+}
+
+/* Evitar que o menu saia por baixo da topbar */
+.topbar { position: sticky; top: 0; z-index: 70; }
+
+/* Print: some com o menu/hambúrguer */
+@media print {
+  .hamburger, .topnav { display: none !important; }
+}
+
+
 /* =========================================================
    BOTÕES
    ========================================================= */

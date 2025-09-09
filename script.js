@@ -1868,3 +1868,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const lbl = grid.querySelector('label[for="normasReferencia"]');
   if (lbl) lbl.style.gridColumn = 'span 4';
 });
+// ===== Mobile menu (hambúrguer)
+(function () {
+  const btn = document.getElementById('btnBurger');
+  const nav = document.getElementById('topnav');
+  if (!btn || !nav) return;
+
+  function openMenu() {
+    nav.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    // fecha ao clicar fora
+    window.addEventListener('click', onOutside, { once: true });
+    // fecha no ESC
+    window.addEventListener('keydown', onEsc, { once: true });
+  }
+  function closeMenu() {
+    nav.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function onOutside(e) {
+    if (!nav.contains(e.target) && e.target !== btn) closeMenu();
+  }
+  function onEsc(e) {
+    if (e.key === 'Escape') closeMenu();
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    (nav.hidden ? openMenu : closeMenu)();
+  });
+
+  // Fecha ao mudar orientação/tamanho
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 900) closeMenu();
+  });
+})();

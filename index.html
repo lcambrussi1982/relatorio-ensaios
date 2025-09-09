@@ -22,33 +22,36 @@
   <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
 
   <header class="topbar" role="banner">
-    <div class="container topbar__inner">
-      <div class="brand" aria-label="Shiva Conexões">
-        <img src="shiva.png" alt="Shiva Conexões" />
-        <div class="brand-text">
-          <span class="brand-title">Relatório de Inspeção</span>
-          <span class="brand-sub">Laudo Interno</span>
-        </div>
-      </div>
+    
+     <div class="container topbar__inner">
+  <a class="brand" href="#">
+    <img src="shiva.png" alt="Shiva Conexões" />
+    <span class="brand-text">
+      <span class="brand-title">Relatório de Inspeção</span>
+      <span class="brand-sub">Laudo Interno</span>
+    </span>
+  </a>
 
-      <div class="topbar__right">
-        <nav class="actions" role="group" aria-label="Ações do relatório">
-          <div class="btn-group">
-            <button id="btnSalvar" class="btn btn--primary" type="button" title="Salvar no navegador">Salvar</button>
-          </div>
+  <!-- Botão hambúrguer (só aparece no mobile) -->
+  <button id="btnBurger" class="hamburger" aria-label="Abrir menu" aria-controls="topnav" aria-expanded="false">
+    <span class="hamburger__bar"></span>
+    <span class="hamburger__bar"></span>
+    <span class="hamburger__bar"></span>
+  </button>
 
-          <div class="btn-group">
-            <button id="btnPDF" class="btn btn--secondary" type="button" title="Gerar PDF (texto)">PDF</button>
-            <button id="btnImprimir" class="btn btn--secondary" type="button" title="Imprimir página">Imprimir</button>
-          </div>
-
-          <!-- Botão para abrir o seletor de temas -->
-          <div class="btn-group">
-            <button id="btnTemas" class="btn btn--secondary" type="button" title="Escolher tema">Temas</button>
-          </div>
-        </nav>
-      </div>
+  <!-- Navegação/ações: desktop = inline | mobile = painel -->
+  <nav id="topnav" class="topnav" hidden>
+    <div class="actions">
+      <button id="btnSalvar" class="btn btn--primary">Salvar</button>
+      <button id="btnPDF" class="btn btn--secondary">PDF</button>
+      <button id="btnImprimir" class="btn btn--secondary">Imprimir</button>
+      <button id="btnTemas" class="btn btn--ghost">Temas</button>
+      <!-- se tiver o toggle de tema -->
+      <button id="btnEscuro" class="btn btn--ghost only-light">Escuro</button>
     </div>
+  </nav>
+</div>
+
   </header>
 
   <main class="layout" id="app" role="main">
