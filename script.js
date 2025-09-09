@@ -1812,3 +1812,37 @@ window.UIThemes = window.UIThemes || {
     }
   } catch { }
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('normasReferencia');
+  if (!sel) return;
+
+  const grid = sel.closest('.grid');
+  if (!grid) return;
+
+  // Se o select estiver DENTRO de um <label>, “desaninha” e organiza no grid 4/8
+  const hostLabel = sel.closest('label');
+  if (hostLabel && hostLabel.parentElement === grid) {
+    // tenta obter só o texto do label (ignora o conteúdo do select)
+    const labelText =
+      Array.from(hostLabel.childNodes)
+        .filter(n => n.nodeType === Node.TEXT_NODE)
+        .map(n => n.textContent)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Normas de referência';
+
+    const newLabel = document.createElement('label');
+    newLabel.setAttribute('for', 'normasReferencia');
+    newLabel.textContent = labelText;
+
+    grid.insertBefore(newLabel, hostLabel);      // label ocupa 4 colunas (pela sua CSS)
+    grid.insertBefore(sel, hostLabel.nextSibling); // select vira irmão e ocupa 8 colunas
+    hostLabel.remove();
+  }
+
+  // Garante as colunas (sem afetar outros campos)
+  sel.style.gridColumn = 'span 8';
+  const lbl = grid.querySelector('label[for="normasReferencia"]');
+  if (lbl) lbl.style.gridColumn = 'span 4';
+});
