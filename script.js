@@ -15,6 +15,15 @@ const THEME = {
   danger: "#E11D48",
 };
 
+/* ==== NOVO: mapeamento de temas para meta tags / ajustes === */
+const THEME_KEY = "ui-theme";
+const THEME_META = {
+  claro: { colorScheme: "light", themeColor: "#0E3554" },
+  escuro: { colorScheme: "dark", themeColor: "#121933" },
+  marinho: { colorScheme: "dark", themeColor: "#10253f" },
+  sepia: { colorScheme: "light", themeColor: "#9c6b3c" },
+};
+
 /* =========================
    Storage
    ========================= */
@@ -23,7 +32,7 @@ const STORAGE_KEY = "relatorios-ensaio-v5";
 /* =========================
    Helpers DOM / Utils
    ========================= */
-   const FORNECEDOR_FIXO = "MARINI INDUSTRIA E COMERCIO DE PLÁSTICO";
+const FORNECEDOR_FIXO = "MARINI INDUSTRIA E COMERCIO DE PLÁSTICO";
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.random()).toString(36));
@@ -76,6 +85,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // ano no rodapé
   const anoEl = $("#ano"); if (anoEl) anoEl.textContent = new Date().getFullYear();
 
+  // Tema (aplica persistido, liga o dialog)
+  initThemeFromStorage();
+  setupThemeDialog();
+
+  // Datas (período de inspeção)
+  hookPeriodoDates();
+
   // UI polishes: cor, logo maior, alinhamentos, tabela responsiva, sombra topbar
   injectUIStyles();
   alignAddResultadoBtn();
@@ -86,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
   preencherForm(atual);
   desenharLista();
 
-  // Toggle aside
+  // Toggle aside (se existir)
   $("#btnToggleAside")?.addEventListener("click", () => {
     document.body.classList.toggle("aside-collapsed");
     const btn = $("#btnToggleAside");
@@ -108,15 +124,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Ações principais
   $("#btnSalvar")?.addEventListener("click", salvarAtual);
 
-  // Imprimir: gera o PDF e manda imprimir o PDF (não o layout da página)
+  // Imprimir (gera PDF e imprime o PDF)
   $("#btnImprimir")?.addEventListener("click", async () => {
     try {
-      const blob = await gerarPDF({ returnBlob: true }); // << retorna Blob do PDF
+      const blob = await gerarPDF({ returnBlob: true });
       if (!blob) throw new Error("Falha ao gerar PDF.");
-
       const url = URL.createObjectURL(blob);
-
-      // iframe invisível para chamar a impressão do PDF
       const iframe = document.createElement("iframe");
       iframe.style.position = "fixed";
       iframe.style.right = "0";
@@ -125,25 +138,19 @@ document.addEventListener("DOMContentLoaded", () => {
       iframe.style.height = "0";
       iframe.style.border = "0";
       iframe.src = url;
-
       iframe.onload = () => {
-        // dá um pequeno tempo para o PDF renderizar dentro do iframe
         setTimeout(() => {
           try {
             iframe.contentWindow?.focus();
             iframe.contentWindow?.print();
           } catch (e) {
-            // fallback: abre em nova aba
             window.open(url, "_blank");
           } finally {
-            // libera o objeto URL depois de um tempo
             setTimeout(() => URL.revokeObjectURL(url), 10_000);
           }
         }, 250);
       };
-
       document.body.appendChild(iframe);
-      // remove o iframe depois de um tempo
       setTimeout(() => iframe.remove(), 15_000);
     } catch (err) {
       console.error(err);
@@ -154,9 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Botão PDF: baixa o arquivo
   $("#btnPDF")?.addEventListener("click", () => gerarPDF({ save: true }));
 
-
-  // PDF (texto)
-  $("#btnPDF")?.addEventListener("click", gerarPDF);
 
   // Filtro lista
   $("#filtroLista")?.addEventListener("input", desenharLista);
@@ -170,27 +174,30 @@ function novoRelatorio() {
     id: uid(),
     numeroRelatorio: "",
     ordemProducao: "",
-     fornecedorFabricante: FORNECEDOR_FIXO,
+    fornecedorFabricante: FORNECEDOR_FIXO,
     interessado: "",
     revisao: "",
     dataEmissao: "",
     responsavelTecnico: "",
     laboratorio: "",
+    quantidade: "1", // ✅ add isto
     normasReferencia: "",
+    periodo: { inicio: "", fim: "" },
     amostras: [novaAmostra()],
-    objetivo: "",                // (pode não existir no HTML)
-    resultados: [],              // [{ensaio,resultado,requisito,conformidade}]
-    discussao: "",               // idem
-    conclusao: { status: "Conforme", observacoes: "" }, // idem
-    anexos: { certificados: [], planilhas: [], fotos: [] }, // campos de texto
-    anexosList: [],              // anexos de arquivo (Base64)
-    imagens: [],                 // [{src, alt, legenda}]
-    tabelasExtras: [],           // [{titulo, linhas:[[c1,c2],...]}]
+    objetivo: "",
+    resultados: [],
+    discussao: "",
+    conclusao: { status: "Conforme", observacoes: "" },
+    anexos: { certificados: [], planilhas: [], fotos: [] },
+    anexosList: [],
+    imagens: [],
+    tabelasExtras: [],
     updatedAt: Date.now(),
   };
 }
+
 function novaAmostra() {
-  return { descricao: "", tipo: "", dimensao: "", cor: "", processo: "", marca: "", lote: "", quantidade: "" };
+  return { descricao: "", tipo: "", dimensao: "", cor: "", processo: "", marca: "", amostra: "", lote: "" };
 }
 function loadAll() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [] } catch { return [] }
@@ -214,9 +221,18 @@ function preencherForm(r) {
   f.dataEmissao && (f.dataEmissao.value = r.dataEmissao || "");
   f.responsavelTecnico && (f.responsavelTecnico.value = r.responsavelTecnico || "");
   f.laboratorio && (f.laboratorio.value = r.laboratorio || "");
+  f.quantidade && (f.quantidade.value = r.quantidade || "1");
+
   const normasSel = $("#normasReferencia"); if (normasSel) normasSel.value = r.normasReferencia || "";
 
-  // Campos opcionais
+  // NOVO: Período (datas)
+  const di = $("#dataInicio"), df = $("#dataFim");
+  if (di) di.value = (r.periodo?.inicio || "");
+  if (df) df.value = (r.periodo?.fim || "");
+  // aplica as restrições ao carregar
+  enforcePeriodoRules();
+
+  // Opcionais
   f.objetivo && (f.objetivo.value = r.objetivo || "");
   f.discussao && (f.discussao.value = r.discussao || "");
   const conclRadio = (f.querySelector(`input[name="statusConclusao"][value="${r.conclusao?.status || "Conforme"}"]`));
@@ -291,17 +307,21 @@ function coletarForm() {
     dataEmissao: f.dataEmissao?.value || "",
     responsavelTecnico: f.responsavelTecnico?.value.trim() || "",
     laboratorio: f.laboratorio?.value.trim() || "",
+    quantidade: f.quantidade?.value || "",
     normasReferencia: $("#normasReferencia")?.value || "",
+
+    // NOVO: período
+    periodo: {
+      inicio: $("#dataInicio")?.value || "",
+      fim: $("#dataFim")?.value || ""
+    },
 
     amostras: $$("[data-amostra]", $("#amostras")).map(card => ({
       descricao: $(".a-descricao", card)?.value.trim() || "",
-      tipo: $(".a-tipo", card)?.value.trim() || "",
-      dimensao: $(".a-dimensao", card)?.value.trim() || "",
-      cor: $(".a-cor", card)?.value.trim() || "",
       processo: $(".a-processo", card)?.value.trim() || "",
       marca: $(".a-marca", card)?.value.trim() || "",
+      amostra: $(".a-amostra", card)?.value.trim() || "",
       lote: $(".a-lote", card)?.value.trim() || "",
-      quantidade: $(".a-quantidade", card)?.value.trim() || ""
     })),
 
     objetivo: f.objetivo?.value.trim() || "",
@@ -346,6 +366,11 @@ function coletarForm() {
 function salvarAtual() {
   const form = $("#formRelatorio");
   if (form && !form.reportValidity()) return;
+
+  // NOVO: valida período
+  const okPeriodo = validatePeriodoInputs();
+  if (!okPeriodo) return;
+
   const data = coletarForm();
   data.updatedAt = Date.now();
   const ix = relatorios.findIndex(r => r.id === data.id);
@@ -387,14 +412,11 @@ function limparCamposMetodo() {
    ========================= */
 function amostraCard(a = {}, idx = 0) {
   const d = el("div", { className: "grid" }); d.dataset.amostra = idx;
-  d.innerHTML = `<label>Descrição <input class="a-descricao" value="${a.descricao || ""}" required></label>
-  <label>Tipo <input class="a-tipo" value="${a.tipo || ""}"></label>
-  <label>Dimensão nominal <input class="a-dimensao" value="${a.dimensao || ""}"></label>
-  <label>Cor <input class="a-cor" value="${a.cor || ""}"></label>
+  d.innerHTML = `<label>Descrição <input class="a-descricao" value="${a.descricao || ""}" required></label> 
   <label>Processo <input class="a-processo" value="${a.processo || ""}"></label>
   <label>Marca <input class="a-marca" value="${a.marca || ""}"></label>
-  <label>Lote/Nº amostra <input class="a-lote" value="${a.lote || ""}"></label>
-  <label>Qtd. <input class="a-quantidade" value="${a.quantidade || ""}" type="number" min="0"></label>
+  <label>Nº amostra <input class="a-amostra" value="${a.amostra || ""}"></label>
+  <label>Lote<input class="a-lote" value="${a.lote || ""}"></label>  
   <div><button type="button" class="btn btn--secondary" data-remove>Remover</button></div>`;
   $("button[data-remove]", d).addEventListener("click", async () => {
     await Anim.fadeOut(d, 150, 6); d.remove(); toast("Amostra removida");
@@ -598,28 +620,25 @@ function desenharLista() {
   if (!ul.children.length) { const li = el("li"); li.textContent = "Nenhum relatório salvo."; ul.appendChild(li); }
 }
 
+/* =========================
+   NUMERAÇÃO DO RELATÓRIO  (versão 1 — mantida)
+   ========================= */
 function gerarNumeroRelatorio() {
   const ano = new Date().getFullYear();
   const key = `contador-${ano}`;
-
-  // Pega contador do ano no localStorage
   let contador = parseInt(localStorage.getItem(key) || "0", 10);
-  contador++; // incrementa
-  localStorage.setItem(key, contador); // salva novo contador
-
-  // Retorna formato 00000001/ANO
+  contador++;
+  localStorage.setItem(key, contador);
   return `${String(contador).padStart(8, "0")}/${ano}`;
 }
 
-
-
 /* =========================
-   PDF (texto) — jsPDF
+   PDF — utilitários de imagem
    ========================= */
 function loadImageAsDataURL(url, preferPNG = false) {
   return new Promise((resolve, reject) => {
     if (!url) return reject(new Error("URL vazia"));
-    if (/^data:image\//i.test(url)) return resolve(url); // já é DataURL (mantém formato)
+    if (/^data:image\//i.test(url)) return resolve(url);
 
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -631,12 +650,10 @@ function loadImageAsDataURL(url, preferPNG = false) {
         const ctx = canvas.getContext("2d");
 
         if (preferPNG) {
-          // mantém alpha (sem fundo preto)
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
           return resolve(canvas.toDataURL("image/png"));
         } else {
-          // fotos: forçar fundo branco p/ evitar preto no JPEG
           ctx.fillStyle = "#fff";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
@@ -648,9 +665,6 @@ function loadImageAsDataURL(url, preferPNG = false) {
     img.src = url;
   });
 }
-
-
-
 function getImageFormatFromDataURL(dataUrl) {
   if (typeof dataUrl !== "string") return "JPEG";
   if (dataUrl.startsWith("data:image/png")) return "PNG";
@@ -658,25 +672,17 @@ function getImageFormatFromDataURL(dataUrl) {
 }
 async function getLogoDataURL() {
   const logoEl = document.querySelector('.brand img');
-  const src = logoEl?.src || 'Shiva.png'; // fallback
-  try { 
-    // <<< preserva transparência da logo
-    return await loadImageAsDataURL(src, /* preferPNG */ true); 
-  } catch { 
-    return null; 
+  const src = logoEl?.src || 'shiva.png';
+  try {
+    return await loadImageAsDataURL(src, /* preferPNG */ true);
+  } catch {
+    return null;
   }
 }
 
-
-// =========================
-// PDF (texto) — jsPDF com "fieldsets" em molduras
-// =========================
-// =========================
-// PDF (texto) — jsPDF com molduras e "inputs" como na página
-// =========================
-// =========================
-// PDF (texto) — jsPDF c/ molduras, data BR e assinaturas no rodapé
-// =========================
+/* =========================
+   PDF (texto) — jsPDF com molduras, período e assinaturas
+   ========================= */
 async function gerarPDF(opts = {}) {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     toast("jsPDF não está carregado. Confira a tag no <head>.", "error");
@@ -685,19 +691,23 @@ async function gerarPDF(opts = {}) {
 
   const { jsPDF } = window.jspdf;
   const r = coletarForm();
+
+  // valida período antes de gerar
+  if (!validatePeriodoInputs()) return;
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
 
   // ---- helpers locais --------------------------------------------
   const formatDateBR = (input) => {
     if (!input) return "";
     const s = String(input).trim();
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); // ISO yyyy-MM-dd(THH...)
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s; // já está BR
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
     const d = new Date(s);
     if (!isNaN(d)) {
-      const dd = String(d.getDate()).padStart(2,"0");
-      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
       const yyyy = d.getFullYear();
       return `${dd}/${mm}/${yyyy}`;
     }
@@ -710,7 +720,7 @@ async function gerarPDF(opts = {}) {
   let y = MARGIN_TOP;
 
   const LOGO_DURL = await getLogoDataURL();
-  const LOGO_FMT  = LOGO_DURL ? getImageFormatFromDataURL(LOGO_DURL) : null;
+  const LOGO_FMT = LOGO_DURL ? getImageFormatFromDataURL(LOGO_DURL) : null;
   let logoDims = { w: 110, h: 32 };
   if (LOGO_DURL) {
     const imgTmp = new Image(); imgTmp.src = LOGO_DURL;
@@ -726,11 +736,11 @@ async function gerarPDF(opts = {}) {
       doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(THEME.ink);
       const titleX = MARGIN_X + logoDims.w + 12;
       const titleY = Math.max(y + 8, y - 20 + logoDims.h * 0.6);
-      doc.text("Relatório de Ensaio – PVC-U", titleX, titleY);
+      doc.text("Relatório de Inspeção", titleX, titleY);
       headerBottomY = Math.max(y - 20 + logoDims.h, titleY + 4);
     } else {
       doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(THEME.ink);
-      doc.text("Relatório de Ensaio – PVC-U", MARGIN_X, y);
+      doc.text("Relatório de Inspeção", MARGIN_X, y);
       headerBottomY = y + 10;
     }
     doc.setDrawColor(190);
@@ -821,7 +831,7 @@ async function gerarPDF(opts = {}) {
     const lines = doc.splitTextToSize(value, maxW);
     const boxH = Math.max(22, FIELD_PAD_Y * 2 + lines.length * LINE_H);
     ensureSpace(boxH);
-    doc.setDrawColor(THEME.border ? parseInt(THEME.border.slice(1, 3), 16) : COR_BORDA);
+    doc.setDrawColor(COR_BORDA);
     doc.roundedRect(x, y - 9, w, boxH, 5, 5);
     const textY = y - 9 + FIELD_PAD_Y + 12;
     lines.forEach((ln, i) => doc.text(ln, x + FIELD_PAD_X, textY + i * LINE_H));
@@ -872,10 +882,10 @@ async function gerarPDF(opts = {}) {
   const drawResultadosTable = (rows) => {
     const fullW = PAGE_W - 2 * MARGIN_X;
     const cols = [
-      { key: "ensaio",        title: "Ensaio",             w: fullW * 0.24 },
-      { key: "resultado",     title: "Resultado obtido",   w: fullW * 0.36 },
-      { key: "requisito",     title: "Requisito normativo",w: fullW * 0.24 },
-      { key: "conformidade",  title: "Conformidade",       w: fullW * 0.16 },
+      { key: "ensaio", title: "Ensaio", w: fullW * 0.24 },
+      { key: "resultado", title: "Resultado obtido", w: fullW * 0.36 },
+      { key: "requisito", title: "Requisito normativo", w: fullW * 0.24 },
+      { key: "conformidade", title: "Conformidade", w: fullW * 0.16 },
     ];
     const colX = []; let x = MARGIN_X;
     cols.forEach(c => { colX.push(x); x += c.w; });
@@ -910,7 +920,6 @@ async function gerarPDF(opts = {}) {
     });
   };
 
-  // --- assinaturas (rodapé da última página)
   const pickVal = (selectors) => {
     for (const sel of selectors) {
       const el = sel.startsWith("#") || sel.startsWith("[")
@@ -923,8 +932,8 @@ async function gerarPDF(opts = {}) {
   };
 
   const drawSignBlock = (x, w, title, name) => {
-    const lineGap = 36;  // título -> linha
-    const nameGap = 16;  // linha -> nome
+    const lineGap = 36;
+    const nameGap = 16;
     doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(THEME.ink);
     doc.text(title, x, y);
     const lineY = y + lineGap;
@@ -951,11 +960,10 @@ async function gerarPDF(opts = {}) {
 
     y = Math.max(y, PAGE_H - MARGIN_BOTTOM - areaH);
 
-    // tenta diferentes ids/names comuns para evitar dependência
     const nomeTestes = pickVal(["#respTestes", "[name='respTestes']", "responsavelTestes", "responsavelPelosTestes"]) || "";
-    const nomeVerif  = pickVal(["#respVerificacao", "[name='respVerificacao']", "responsavelVerificacao", "responsavelPelaVerificacao"]) || "";
+    const nomeVerif = pickVal(["#respVerificacao", "[name='respVerificacao']", "responsavelVerificacao", "responsavelPelaVerificacao"]) || "";
 
-    drawSignBlock(MARGIN_X,               colW, "Responsável pelos testes:",     nomeTestes);
+    drawSignBlock(MARGIN_X, colW, "Responsável pelos testes:", nomeTestes);
     drawSignBlock(MARGIN_X + colW + gutter, colW, "Responsável pela verificação:", nomeVerif);
 
     y += areaH;
@@ -966,17 +974,22 @@ async function gerarPDF(opts = {}) {
   // 1) Identificação do Relatório
   // -----------------------------
   beginSection("Identificação do Relatório");
+  const periodoTxt = (r.periodo?.inicio || r.periodo?.fim)
+    ? `${formatDateBR(r.periodo?.inicio)} até ${formatDateBR(r.periodo?.fim)}`
+    : "-";
   twoColFields([
     ["Número do Relatório", r.numeroRelatorio],
-    ["Nº Ordem de Produção", r.ordemProducao],
+    ["Empenho", r.ordemProducao],
     ["Fornecedor/Fabricante", r.fornecedorFabricante],
+    ["Quantidade", r.quantidade || ""],
     ["Interessado", r.interessado],
-    ["Revisão", r.revisao],
-    ["Data de emissão", formatDateBR(r.dataEmissao)], // <<< dd/MM/yyyy
-    ["Responsável Técnico", r.responsavelTecnico],
+    ["Período de inspeção", periodoTxt],
     ["Laboratório", r.laboratorio],
-    ["Normas de referência", r.normasReferencia || "-"]
+    ["Normas de referência", r.normasReferencia || "-"],
+    ["Revisão", r.revisao],
+    ["Data de emissão", formatDateBR(r.dataEmissao)],
   ]);
+
   endSection();
 
   // -----------------------------
@@ -989,13 +1002,10 @@ async function gerarPDF(opts = {}) {
       ensureSpace(16); doc.text(`Amostra ${i + 1}`, MARGIN_X, y); y += 8; doc.setFont("helvetica", "normal");
       twoColFields([
         ["Descrição", a.descricao],
-        ["Tipo", a.tipo],
-        ["Dimensão nominal", a.dimensao],
-        ["Cor", a.cor],
         ["Processo", a.processo],
         ["Marca", a.marca],
-        ["Lote/Nº amostra", a.lote],
-        ["Quantidade", a.quantidade]
+        ["Nº amostra", a.amostra],
+        ["Lote", a.lote],
       ]);
       y += 4;
     });
@@ -1007,10 +1017,10 @@ async function gerarPDF(opts = {}) {
   // -----------------------------
   // 3) Métodos e Materiais Empregados
   // -----------------------------
-  const ensaioTxt    = document.querySelector("#ensaioRealizado option:checked")?.textContent?.trim() || "";
-  const amostrasTxt  = document.querySelector("#amostrasSelect option:checked")?.textContent?.trim() || "";
-  const metodoTxt    = document.querySelector("#metodo option:checked")?.textContent?.trim() || "";
-  const resultadoMM  = document.querySelector("#resultado option:checked")?.textContent?.trim() || "";
+  const ensaioTxt = document.querySelector("#ensaioRealizado option:checked")?.textContent?.trim() || "";
+  const amostrasTxt = document.querySelector("#amostrasSelect option:checked")?.textContent?.trim() || "";
+  const metodoTxt = document.querySelector("#metodo option:checked")?.textContent?.trim() || "";
+  const resultadoMM = document.querySelector("#resultado option:checked")?.textContent?.trim() || "";
   beginSection("Métodos e Materiais Empregados");
   twoColFields([
     ["Ensaio realizado", ensaioTxt],
@@ -1024,7 +1034,6 @@ async function gerarPDF(opts = {}) {
   // 4) Resultados dos Ensaios
   // -----------------------------
   beginSection("Resultados dos Ensaios");
-
   const rows = r.resultados || [];
   if (!rows.length) {
     drawTextArea("Resultados", "Sem resultados informados.", 40, MARGIN_X, PAGE_W - 2 * MARGIN_X);
@@ -1119,36 +1128,28 @@ async function gerarPDF(opts = {}) {
   return null;
 }
 
-
 /* =========================
    Datas — formato dd/MM/yyyy
    ========================= */
 function formatDateBR(input) {
   if (!input) return "";
   const s = String(input).trim();
-  // ISO: yyyy-MM-dd (ou yyyy-MM-ddTHH:mm..)
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-  // Já em dd/MM/yyyy
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  // Fallback parseável
   const d = new Date(s);
   if (!isNaN(d)) {
-    const dd = String(d.getDate()).padStart(2,"0");
-    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
     const yyyy = d.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
   }
   return s;
 }
 
-
 /* =========================
    Miscelânea
    ========================= */
-
-
-   
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, m => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]
@@ -1161,6 +1162,9 @@ function escapeHtml(s) {
 function injectUIStyles() {
   const style = document.createElement("style");
   style.textContent = `
+    
+
+  
     .brand img { width: var(--logo-size, 84px); height: var(--logo-size, 100px); object-fit: contain; }
 
     .btn--primary, .btn.btn--primary {
@@ -1174,8 +1178,15 @@ function injectUIStyles() {
     #btnPDF:hover, #btnAddResultado:hover, #btnAddImagem:hover, #btnAddAmostra:hover {
       background:${THEME.brandWeak} !important;
     }
-  `;
+          /* evita que imagens fiquem “por baixo” de elementos da tabela */
+    #imagens { display:grid; gap:12px; margin-top:12px; position:relative; z-index:0; clear:both; }
+    #imagens [data-img] { background:#fff; border:1px solid var(--border, #E2E8F0); border-radius:10px; padding:10px; }
+    .tabela-wrap { position:relative; z-index:0; }
+
+  `
+  ;
   document.head.appendChild(style);
+  
 }
 function alignAddResultadoBtn() {
   const wrap = $(".tabela-wrap");
@@ -1201,7 +1212,11 @@ function topbarShadow() {
   onScroll();
   addEventListener("scroll", onScroll, { passive: true });
 }
-function gerarNumeroRelatorio() {
+
+/* =========================
+   NUMERAÇÃO DO RELATÓRIO  (versão 2 — também mantida)
+   ========================= */
+function gerarNumeroRelatorio_v2() {
   const anoAtual = new Date().getFullYear();
   const key = "controleRelatorios";
   const dados = JSON.parse(localStorage.getItem(key)) || { ano: anoAtual, contador: 0 };
@@ -1215,25 +1230,32 @@ function gerarNumeroRelatorio() {
 
   localStorage.setItem(key, JSON.stringify(dados));
 
-  const numero = dados.contador.toString().padStart(8, '0'); // 8 dígitos
+  const numero = dados.contador.toString().padStart(8, '0');
   return `${numero}/${anoAtual}`;
 }
-
-// Exemplo de uso:
+// Mantém seu listener que preenche o número ao carregar
 document.addEventListener("DOMContentLoaded", () => {
   const numeroInput = document.getElementById("numeroRelatorio");
   if (numeroInput && !numeroInput.value) {
-    numeroInput.value = gerarNumeroRelatorio();
+    // usa v2 para evitar conflito, mas mantém a semântica
+    numeroInput.value = gerarNumeroRelatorio_v2();
   }
 });
+
+/* =========================
+   salvarAtual (versão do fim do seu código) — mantida e melhorada
+   ========================= */
 function salvarAtual() {
   const form = document.getElementById("formRelatorio");
   if (form && !form.reportValidity()) return;
 
   // Gera número se não tiver
   if (!form.numeroRelatorio.value) {
-    form.numeroRelatorio.value = gerarNumeroRelatorio();
+    form.numeroRelatorio.value = gerarNumeroRelatorio_v2();
   }
+
+  // Valida período antes de salvar
+  if (!validatePeriodoInputs()) return;
 
   // Coleta e salva relatório
   const data = coletarForm();
@@ -1246,8 +1268,547 @@ function salvarAtual() {
 
   // Reseta formulário para novo relatório
   setTimeout(() => {
-    atual = novoRelatorio(); // Novo objeto limpo
-    preencherForm(atual);    // Limpa na tela
-    form.numeroRelatorio.value = gerarNumeroRelatorio(); // Novo número
+    atual = novoRelatorio();
+    preencherForm(atual);
+    form.numeroRelatorio.value = gerarNumeroRelatorio_v2();
   }, 200);
 }
+
+/* ======================================================================
+   ======  NOVO BLOCO: Temas (dialog + persistência + meta tags)  =======
+   ====================================================================== */
+function currentTheme() {
+  const html = document.documentElement;
+  return html.dataset.theme || localStorage.getItem(THEME_KEY) || "claro";
+}
+function applyTheme(theme) {
+  const html = document.documentElement;
+  html.setAttribute("data-theme", theme);
+
+  // meta color-scheme
+  let metaScheme = document.querySelector('meta[name="color-scheme"]');
+  if (!metaScheme) {
+    metaScheme = document.createElement("meta");
+    metaScheme.setAttribute("name", "color-scheme");
+    document.head.appendChild(metaScheme);
+  }
+  metaScheme.setAttribute("content", THEME_META[theme]?.colorScheme || "light");
+
+  // meta theme-color (Chrome/Android)
+  let metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (!metaTheme) {
+    metaTheme = document.createElement("meta");
+    metaTheme.setAttribute("name", "theme-color");
+    document.head.appendChild(metaTheme);
+  }
+  metaTheme.setAttribute("content", THEME_META[theme]?.themeColor || "#0E3554");
+
+  localStorage.setItem(THEME_KEY, theme);
+}
+function initThemeFromStorage() {
+  const html = document.documentElement;
+  const fromDataAttr = html.getAttribute("data-theme");
+  const stored = localStorage.getItem(THEME_KEY);
+  const theme = stored || fromDataAttr || "claro";
+  applyTheme(theme);
+  // Sincroniza rádio no dialog (se já existir no HTML)
+  const radio = document.querySelector(`input[name="tema"][value="${theme}"]`);
+  if (radio) radio.checked = true;
+}
+function setupThemeDialog() {
+  const btnOpen = $("#btnTemas");
+  const dlg = $("#dlgTemas");
+  const btnClose = $("#btnTemaFechar");
+  const btnCancel = $("#btnTemaCancelar");
+  const btnApply = $("#btnTemaAplicar");
+
+  if (!btnOpen || !dlg) return;
+
+  // abrir
+  btnOpen.addEventListener("click", () => {
+    try { dlg.showModal(); } catch { dlg.setAttribute("open", "open"); }
+    // marca o rádio do tema atual
+    const theme = currentTheme();
+    const radio = dlg.querySelector(`input[name="tema"][value="${theme}"]`);
+    if (radio) radio.checked = true;
+  });
+
+  // fechar (X e cancelar)
+  const closeDialog = () => {
+    if (dlg.open) dlg.close();
+    else dlg.removeAttribute("open");
+  };
+  btnClose?.addEventListener("click", closeDialog);
+  btnCancel?.addEventListener("click", closeDialog);
+
+  // aplicar tema
+  btnApply?.addEventListener("click", () => {
+    const selected = dlg.querySelector('input[name="tema"]:checked')?.value || "claro";
+    applyTheme(selected);
+    toast("Tema aplicado: " + selected, "success");
+    closeDialog();
+  });
+
+  // clicar fora (backdrop)
+  dlg.addEventListener("click", (ev) => {
+    const rect = dlg.getBoundingClientRect();
+    const inDialog = (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom);
+    if (!inDialog) closeDialog();
+  });
+
+  // Esc para fechar (por segurança, muitos browsers já fazem)
+  dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(); });
+}
+
+/* ======================================================================
+   ======  NOVO BLOCO: Datas do período (validação + UX)           =======
+   ====================================================================== */
+function hookPeriodoDates() {
+  const di = $("#dataInicio");
+  const df = $("#dataFim");
+  if (!di || !df) return;
+
+  // Evita “bind” duplicado
+  if (di.dataset.boundDates || df.dataset.boundDates) return;
+  di.dataset.boundDates = df.dataset.boundDates = "1";
+
+  const syncMinMax = () => {
+    if (di.value) df.min = di.value; else df.removeAttribute("min");
+    if (df.value) di.max = df.value; else di.removeAttribute("max");
+  };
+
+  di.addEventListener("change", () => {
+    syncMinMax();
+    if (df.value && di.value && df.value < di.value) {
+      df.value = di.value;
+      typeof toast === "function" && toast("Ajustei a data final para não ficar antes do início.", "info");
+    }
+  });
+
+  df.addEventListener("change", () => {
+    syncMinMax();
+    if (df.value && di.value && df.value < di.value) {
+      di.value = df.value;
+      typeof toast === "function" && toast("Ajustei a data inicial para não ficar após o fim.", "info");
+    }
+  });
+
+  syncMinMax();
+  enforcePeriodoRules();
+}
+
+function enforcePeriodoRules() {
+  const di = $("#dataInicio");
+  const df = $("#dataFim");
+  if (!di || !df) return;
+  if (di.value && df.value && df.value < di.value) {
+    df.value = di.value;
+  }
+}
+function validatePeriodoInputs() {
+  const di = $("#dataInicio");
+  const df = $("#dataFim");
+  if (!di || !df) return true; // não há campo no layout
+  if (!di.value || !df.value) {
+    toast("Informe o período de inspeção (início e fim).", "error");
+    return false;
+  }
+  if (df.value < di.value) {
+    toast("A data final não pode ser anterior à inicial.", "error");
+    return false;
+  }
+  return true;
+}
+
+/* ---------- Período: ganchos e regras (se ainda não existirem) ---------- */
+window.enforcePeriodoRules = window.enforcePeriodoRules || function enforcePeriodoRules() {
+  const di = document.querySelector("#dataInicio");
+  const df = document.querySelector("#dataFim");
+  if (!di || !df) return;
+  if (di.value && df.value && df.value < di.value) {
+    df.value = di.value;
+  }
+};
+
+window.hookPeriodoDates = window.hookPeriodoDates || function hookPeriodoDates() {
+  const di = document.querySelector("#dataInicio");
+  const df = document.querySelector("#dataFim");
+  if (!di || !df) return;
+
+  const syncMinMax = () => {
+    if (di.value) df.min = di.value; else df.removeAttribute("min");
+    if (df.value) di.max = df.value; else di.removeAttribute("max");
+  };
+
+  di.addEventListener("change", () => {
+    syncMinMax();
+    if (df.value && di.value && df.value < di.value) {
+      df.value = di.value;
+      typeof toast === "function" && toast("Ajustei a data final para não ficar antes do início.", "info");
+    }
+  });
+  df.addEventListener("change", () => {
+    syncMinMax();
+    if (df.value && di.value && df.value < di.value) {
+      di.value = df.value;
+      typeof toast === "function" && toast("Ajustei a data inicial para não ficar após o fim.", "info");
+    }
+  });
+
+  // aplica limites iniciais
+  syncMinMax();
+  window.enforcePeriodoRules();
+};
+
+
+/* ---------------------- Temas: constantes seguras ----------------------- */
+window.THEME_KEY = window.THEME_KEY || "ui-theme";
+window.THEME_META = window.THEME_META || {
+  claro: { colorScheme: "light", themeColor: "#0E3554" },
+  escuro: { colorScheme: "dark", themeColor: "#121933" },
+  marinho: { colorScheme: "dark", themeColor: "#10253f" },
+  sepia: { colorScheme: "light", themeColor: "#9c6b3c" },
+};
+
+/* ---------------------- Temas: helpers idempotentes --------------------- */
+window.currentTheme = window.currentTheme || function currentTheme() {
+  const html = document.documentElement;
+  return html.dataset.theme || localStorage.getItem(window.THEME_KEY) || "claro";
+};
+
+window.applyTheme = window.applyTheme || function applyTheme(theme) {
+  const html = document.documentElement;
+  html.setAttribute("data-theme", theme);
+
+  // color-scheme
+  let metaScheme = document.querySelector('meta[name="color-scheme"]');
+  if (!metaScheme) {
+    metaScheme = document.createElement("meta");
+    metaScheme.setAttribute("name", "color-scheme");
+    document.head.appendChild(metaScheme);
+  }
+  metaScheme.setAttribute("content", (window.THEME_META[theme]?.colorScheme) || "light");
+
+  // theme-color
+  let metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (!metaTheme) {
+    metaTheme = document.createElement("meta");
+    metaTheme.setAttribute("name", "theme-color");
+    document.head.appendChild(metaTheme);
+  }
+  metaTheme.setAttribute("content", (window.THEME_META[theme]?.themeColor) || "#0E3554");
+
+  localStorage.setItem(window.THEME_KEY, theme);
+};
+
+window.initThemeFromStorage = window.initThemeFromStorage || function initThemeFromStorage() {
+  const fromAttr = document.documentElement.getAttribute("data-theme");
+  const saved = localStorage.getItem(window.THEME_KEY);
+  const theme = saved || fromAttr || "claro";
+  window.applyTheme(theme);
+
+  // marca rádio correspondente (se o diálogo existir)
+  const radio = document.querySelector(`input[name="tema"][value="${theme}"]`);
+  if (radio) radio.checked = true;
+};
+
+window.setupThemeDialog = window.setupThemeDialog || function setupThemeDialog() {
+  const btnOpen = document.querySelector("#btnTemas");
+  const dlg = document.querySelector("#dlgTemas");
+  const btnClose = document.querySelector("#btnTemaFechar");
+  const btnCancel = document.querySelector("#btnTemaCancelar");
+  const btnApply = document.querySelector("#btnTemaAplicar");
+
+  if (!btnOpen || !dlg) return;
+
+  if (!btnOpen.dataset.bound) {
+    btnOpen.dataset.bound = "1";
+    btnOpen.addEventListener("click", () => {
+      try { dlg.showModal(); } catch { dlg.setAttribute("open", "open"); }
+      const th = window.currentTheme();
+      const radio = dlg.querySelector(`input[name="tema"][value="${th}"]`);
+      if (radio) radio.checked = true;
+    });
+  }
+
+  const closeDialog = () => {
+    if (dlg.open) dlg.close(); else dlg.removeAttribute("open");
+  };
+
+  if (btnClose && !btnClose.dataset.bound) {
+    btnClose.dataset.bound = "1";
+    btnClose.addEventListener("click", closeDialog);
+  }
+  if (btnCancel && !btnCancel.dataset.bound) {
+    btnCancel.dataset.bound = "1";
+    btnCancel.addEventListener("click", closeDialog);
+  }
+  if (btnApply && !btnApply.dataset.bound) {
+    btnApply.dataset.bound = "1";
+    btnApply.addEventListener("click", () => {
+      const selected = dlg.querySelector('input[name="tema"]:checked')?.value || "claro";
+      window.applyTheme(selected);
+      typeof toast === "function" && toast("Tema aplicado: " + selected, "success");
+      closeDialog();
+    });
+  }
+
+  if (!dlg.dataset.boundBackdrop) {
+    dlg.dataset.boundBackdrop = "1";
+    dlg.addEventListener("click", (ev) => {
+      const rect = dlg.getBoundingClientRect();
+      const inside = ev.clientX >= rect.left && ev.clientX <= rect.right &&
+        ev.clientY >= rect.top && ev.clientY <= rect.bottom;
+      if (!inside) closeDialog();
+    });
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(); });
+  }
+};
+
+
+/* ---------------------- Inicialização discreta ------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  // Tema
+  window.initThemeFromStorage?.();
+  window.setupThemeDialog?.();
+
+  // Datas do período
+  window.hookPeriodoDates?.();
+  window.enforcePeriodoRules?.();
+});
+
+/* =========================================================
+   CONTINUAÇÃO — Utilidades finais de Tema e Datas
+   Cole este trecho logo ABAIXO do seu DOMContentLoaded atual
+   ========================================================= */
+
+/* ---------- (1) Patcher: dispara evento quando o tema muda ---------- */
+(() => {
+  if (window.applyTheme && !window.__themePatched) {
+    const _orig = window.applyTheme;
+    window.applyTheme = function patchedApplyTheme(theme) {
+      _orig(theme);
+      try {
+        document.dispatchEvent(new CustomEvent("theme:changed", { detail: { theme } }));
+      } catch { }
+    };
+    window.__themePatched = true;
+  }
+})();
+
+/* ---------- (2) Fallback: cria UI de temas se faltar no HTML ---------- */
+function __buildThemeDialogIfMissing() {
+  if (document.querySelector("#dlgTemas")) return;
+
+  const tpl = document.createElement("template");
+  tpl.innerHTML = `
+    <dialog id="dlgTemas" aria-labelledby="dlgTemasTitle" aria-modal="true" style="border:0;padding:0;border-radius:14px;max-width:420px;width:92vw;">
+      <form id="formTemas" method="dialog" style="background:var(--surface,#fff);border:1px solid var(--border,#E2E8F0);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.18);">
+        <header class="dlg-head" style="padding:14px 16px;border-bottom:1px solid var(--border,#E2E8F0);display:flex;align-items:center;justify-content:space-between;">
+          <h2 id="dlgTemasTitle" style="margin:0;font:700 1.1rem/1.2 var(--ff-title,Poppins,system-ui)">Escolher tema</h2>
+          <button type="button" id="btnTemaFechar" aria-label="Fechar" style="background:transparent;border:0;font-size:20px;line-height:1;cursor:pointer">×</button>
+        </header>
+        <fieldset style="padding:14px 16px;display:grid;gap:10px;border:0;margin:0">
+          <legend class="sr-only">Opções de tema</legend>
+          ${["claro", "escuro", "marinho", "sepia"].map((t, i) => `
+            <label class="tema-opcao" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="radio" name="tema" value="${t}" ${i === 0 ? "checked" : ""}/>
+              <span style="font-weight:600;text-transform:capitalize">${t}</span>
+            </label>
+          `).join("")}
+        </fieldset>
+        <footer class="dlg-actions" style="padding:12px 16px;border-top:1px solid var(--border,#E2E8F0);display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" id="btnTemaAplicar" class="btn btn--primary">Aplicar</button>
+          <button type="button" id="btnTemaCancelar" class="btn btn--secondary">Cancelar</button>
+        </footer>
+      </form>
+    </dialog>
+  `.trim();
+  document.body.appendChild(tpl.content);
+
+  // Se não houver botão na topbar, cria um.
+  if (!document.querySelector("#btnTemas")) {
+    const group = document.createElement("div");
+    group.className = "btn-group";
+    group.innerHTML = `<button id="btnTemas" class="btn btn--secondary" type="button" title="Escolher tema">Temas</button>`;
+    document.querySelector(".actions")?.appendChild(group);
+  }
+
+  // Reativa a lógica do diálogo
+  window.setupThemeDialog?.();
+  window.initThemeFromStorage?.();
+}
+
+/* ---------- (3) Comando rápido: seletor inline (opcional e útil) ------ */
+function __mountQuickThemeSwitcher() {
+  if (document.querySelector("#quickTheme")) return;
+  const actions = document.querySelector(".actions");
+  if (!actions) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "btn-group";
+  wrap.innerHTML = `
+    <label class="sr-only" for="quickTheme">Tema</label>
+    <select id="quickTheme" title="Trocar tema rapidamente" style="padding:9px 12px;border-radius:10px;border:1px solid var(--border,#E2E8F0);background:#fff;font-weight:600">
+      <option value="claro">Claro</option>
+      <option value="escuro">Escuro</option>
+      <option value="marinho">Marinho</option>
+      <option value="sepia">Sépia</option>
+    </select>
+  `;
+  actions.appendChild(wrap);
+
+  const sel = wrap.querySelector("#quickTheme");
+  sel.value = (window.currentTheme?.() || "claro");
+  sel.addEventListener("change", (e) => {
+    const val = e.target.value;
+    window.applyTheme?.(val);
+    if (typeof toast === "function") toast("Tema aplicado: " + val, "success");
+    // Sincroniza rádio no dialog, se aberto
+    const radio = document.querySelector(`#dlgTemas input[name="tema"][value="${val}"]`);
+    if (radio) radio.checked = true;
+  });
+
+  // Atualiza o select quando o tema muda por outro caminho
+  document.addEventListener("theme:changed", (ev) => {
+    const t = ev.detail?.theme;
+    if (t && sel.value !== t) sel.value = t;
+  });
+}
+
+/* ---------- (4) Atalhos de teclado úteis ------------------------------ */
+(function __keyboardShortcuts() {
+  if (window.__themeKeysBound) return;
+  window.__themeKeysBound = true;
+
+  document.addEventListener("keydown", (e) => {
+    // Ctrl+Shift+T => abrir diálogo de temas
+    const key = e.key?.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === "t") {
+      e.preventDefault();
+      __buildThemeDialogIfMissing();
+      document.querySelector("#btnTemas")?.click();
+    }
+
+    // Alt+1..4 para temas rápidos
+    if (e.altKey && ["1", "2", "3", "4"].includes(e.key)) {
+      e.preventDefault();
+      const map = { "1": "claro", "2": "escuro", "3": "marinho", "4": "sepia" };
+      const t = map[e.key];
+      window.applyTheme?.(t);
+      if (typeof toast === "function") toast("Tema aplicado: " + t, "success");
+    }
+  });
+})();
+
+/* ---------- (5) Datas: default amigável se estiver vazio --------------- */
+(function __defaultDates() {
+  const di = document.querySelector("#dataInicio");
+  const df = document.querySelector("#dataFim");
+  const de = document.querySelector("#dataEmissao");
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+
+  if (de && !de.value) de.value = todayISO;
+
+  // Se ambos vazios, preenche com hoje
+  if (di && df && !di.value && !df.value) {
+    di.value = todayISO;
+    df.value = todayISO;
+    window.enforcePeriodoRules?.();
+  }
+})();
+
+/* ---------- (6) Inicialização de segurança (idempotente) --------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  __buildThemeDialogIfMissing();
+  __mountQuickThemeSwitcher();
+
+  // Garante radios/combos sincronizados ao trocar tema por qualquer via
+  document.addEventListener("theme:changed", (ev) => {
+    const t = ev.detail?.theme;
+    const radio = document.querySelector(`#dlgTemas input[name="tema"][value="${t}"]`);
+    if (radio && !radio.checked) radio.checked = true;
+  });
+});
+
+
+
+(() => {
+  if (window.__themePatched) return; // já despachamos via applyTheme
+  const html = document.documentElement;
+  let last = html.getAttribute("data-theme") || "claro";
+
+  const mo = new MutationObserver(() => {
+    const cur = html.getAttribute("data-theme") || "claro";
+    if (cur !== last) {
+      last = cur;
+      try {
+        document.dispatchEvent(new CustomEvent("theme:changed", { detail: { theme: cur } }));
+      } catch {}
+    }
+  });
+
+  mo.observe(html, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+
+
+/* 2) Dispara `periodo:changed` quando datas mudam,
+      útil se quiser reagir em outros módulos. */
+(() => {
+  const di = document.querySelector("#dataInicio");
+  const df = document.querySelector("#dataFim");
+  if (!di || !df) return;
+
+  const fire = () => {
+    try {
+      document.dispatchEvent(new CustomEvent("periodo:changed", {
+        detail: { inicio: di.value || "", fim: df.value || "" }
+      }));
+    } catch { }
+  };
+
+  di.addEventListener("change", fire);
+  df.addEventListener("change", fire);
+})();
+
+/* 3) Permite trocar tema via querystring: ?theme=escuro|claro|marinho|sepia
+      (só aplica se o valor for válido) */
+(() => {
+  try {
+    const params = new URLSearchParams(location.search);
+    const t = (params.get("theme") || "").toLowerCase();
+    if (t && ["claro", "escuro", "marinho", "sepia"].includes(t)) {
+      window.applyTheme?.(t);
+    }
+  } catch { }
+})();
+
+/* 4) API pública mínima para depurar/automatizar tema */
+window.UIThemes = window.UIThemes || {
+  /** tema atual (getter) */
+  get current() { return (window.currentTheme?.() || "claro"); },
+  /** define tema programaticamente */
+  set(theme) {
+    if (!["claro", "escuro", "marinho", "sepia"].includes(theme)) return false;
+    window.applyTheme?.(theme);
+    return true;
+  },
+  /** abre o diálogo de temas se existir */
+  open() {
+    const btn = document.querySelector("#btnTemas");
+    if (btn) { btn.click(); return true; }
+    return false;
+  }
+};
+
+/* 5) Pequena confirmação no console (silenciosa em produção) */
+(() => {
+  try {
+    if (!window.__ui_boot_banner) {
+      window.__ui_boot_banner = true;
+      // eslint-disable-next-line no-console
+      console.info("[Relatórios] Tema & Datas helpers carregados. Tema:", window.currentTheme?.());
+    }
+  } catch { }
+})();
