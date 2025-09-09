@@ -67,36 +67,42 @@
   color-scheme: light;
 }
 
-/* ===== Escuro ===== */
+/* ===== Escuro (preto + dourado) ===== */
 html[data-theme="escuro"] {
-  --bg: #0b1020;
-  --surface: #121933;
-  --ink: #e8ecf6;
-  --muted: #9aa4c0;
-  --border: #27314f;
+  /* base */
+  --bg: #0a0a0b;          /* fundo da página (quase preto) */
+  --surface: #111214;     /* cartões/superfícies */
+  --ink: #F2F1EA;         /* texto principal (off-white quente) */
+  --muted: #b5b0a3;       /* textos secundários */
+  --border: #2a2a2d;      /* bordas discretas */
 
-  --accent: #93c5fd;
-  --focus-color: #93c5fd;
+  /* ouro */
+  --accent: #D4AF37;      /* “dourado” principal (links, acentos, foco) */
+  --focus-color: #F5D76E; /* dourado claro para foco/acessibilidade */
   --select-arrow: var(--accent);
 
-  --g-navy: linear-gradient(180deg, #0e1a33 0%, #12244b 55%, #163166 100%);
-  --g-navy-soft: linear-gradient(180deg, #0b1020 0%, #0f1a33 100%);
-  --g-red: linear-gradient(180deg, #ff6b72 0%, #f53a41 45%, #c81e24 100%);
+  /* gradientes da sua UI (mantive os nomes pra não quebrar nada) */
+  --g-navy: linear-gradient(180deg, #0b0b0e 0%, #111217 55%, #16181d 100%);
+  --g-navy-soft: linear-gradient(180deg, #0a0a0b 0%, #0f1013 100%);
+  /* Botão “primário” usa var(--g-red). Tornamos ele dourado: */
+  --g-red: linear-gradient(180deg, #f6e27a 0%, #d4af37 50%, #b88900 100%);
 
-  --table-stripe: #0f1a33;
+  /* listas/tabelas/botões */
+  --table-stripe: #121316; /* listras sutis em tabela */
+  --btn-bg: #15161a;
+  --btn-text: #F2F1EA;
+  --btn-border: #2a2a2d;
+  --btn-hover: #1b1d22;
 
-  --btn-bg: #162344;
-  --btn-text: #e8ecf6;
-  --btn-border: #24345c;
-  --btn-hover: #1b2a52;
-
-  --tag-ok-bg: #103826;
-  --tag-ok-text: #8ae6b4;
-  --tag-bad-bg: #3a1114;
-  --tag-bad-text: #ffa5ac;
+  /* tags (OK/erro) com leitura boa no escuro */
+  --tag-ok-bg: rgba(212, 175, 55, .16);
+  --tag-ok-text: #E6C457;
+  --tag-bad-bg: rgba(255, 99, 99, .14);
+  --tag-bad-text: #FF9AA5;
 
   color-scheme: dark;
 }
+
 
 /* ===== Marinho ===== */
 html[data-theme="marinho"] {
