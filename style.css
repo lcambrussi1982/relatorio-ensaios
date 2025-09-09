@@ -73,7 +73,7 @@ html[data-theme="escuro"] {
   --bg: #0a0a0b;          /* fundo da página (quase preto) */
   --surface: #111214;     /* cartões/superfícies */
   --ink: #F2F1EA;         /* texto principal (off-white quente) */
-  --muted: #b5b0a3;       /* textos secundários */
+  --muted: #e5be5b;       /* textos secundários */
   --border: #2a2a2d;      /* bordas discretas */
 
   /* ouro */
